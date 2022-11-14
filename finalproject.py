@@ -41,6 +41,7 @@ CCDF_full = pd.ExcelFile(CCDF)
 #only one county per state, if multiple
 #only rate for first child in a family
 #not considering special rates, such as special needs, etc.
+#also note year - this is FFY2020, I believe
 reimburse = pd.read_excel(CCDF_full, 'ReimburseRates')
 reimburse = reimburse[reimburse['MajorityRec'] == -1]
 reimburse = reimburse[reimburse['EndDat'] == '9999/12/31']
@@ -60,7 +61,26 @@ reimburse_policies = reimburse_policies[['State', 'ReimburseMultiplier']]
 reimburse_full = reimburse_policies.merge(reimburse, on='State', how='outer')
 
 #Calculate monthly rate
-
+def rate_calculator():
+    
+    ReimburseMultiplier = 1
+    
+    if ReimburseMultiplier == 1:
+        print('monthly')
+        pass
+    elif ReimburseMultiplier > 1 and ReimburseMultiplier <= 5:
+        print('weekly')
+        pass
+    elif ReimburseMultiplier > 5 and ReimburseMultiplier <= 30:
+        print('daily')
+        pass
+    elif ReimburseMultiplier >30 and ReimburseMultiplier <= 240:
+        print('hourly')
+    else:
+        print('what?')
+    
+    
+rate_calculator()
 
 #Current reimbursement rates in Washington State counties
 #this is not enough regions for a good regression
