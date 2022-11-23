@@ -40,6 +40,7 @@ CCDF_full = pd.ExcelFile(CCDF)
 #State shapefile
 state_shp = os.path.join(path, 'UI_states.shp')
 state_df  = geopandas.read_file(state_shp)
+state_df = state_df.astype({'state_fips':'int'})
 
 fig, ax = plt.subplots(figsize=(5,5))
 ax = state_df.plot(ax=ax, color='red', edgecolor='white');
@@ -139,46 +140,50 @@ def record_selector(sheet):
 #Focusing on a single-parent household
 #and minimum hours for at least part-time care 
 
-minhours = record_selector(eligcrit)[['state_fips', 'EndDat', 'EligMinWorkHours', 'EligMinHoursAmount']]
-minhours
+minhours = record_selector(eligcrit)[['state_fips', 
+                                      'EligMinWorkHours', 
+                                      'EligMinHoursAmount', 
+                                      'EligMinHoursAmount_NOTES']]
+
+#Now I want to create a new column with text, interpreting the other two columns
+#From codebook: 
+    #0 =  NA
+    #1 = No minimum
+    #2 = Yes, same minimum for all recipients
+    #3 = Yes, different minimum for full-time and part-time care
+    #92 = Not in manual
 
 
-#issue with more states in minhours than in state_df
-len(minhours)
-len(state_df)
+def min_hours_interpreter(row):
+    """Interpret codes into weekly hours or text descriptions"""
+    
+    if row['EligMinWorkHours'] == 1:
+        return('No minimum')
+    elif row['EligMinWorkHours'] == 2 or row['EligMinWorkHours'] == 3 :
+        if row['EligMinHoursAmount'] >= 0:
+            return(row['EligMinHoursAmount'])
+        elif row['EligMinHoursAmount'] == -5:
+            return('Not in manual')
+        elif row['EligMinHoursAmount'] == -3:
+            return(row['EligMinHoursAmount_NOTES'])
+        else:
+            return('There is a problem here')
+    else:
+        return('There is a problem here') 
 
-minhours.dtypes #int
-state_df.dtypes #obj
+minhours['Interpretation'] = minhours.apply (lambda row: min_hours_interpreter(row), axis=1)
+minhours = minhours[['state_fips', 'Interpretation']]
 
-minhours['state_fips']
-
-state_df = state_df.astype({'state_fips':'int'})
 merge = minhours.merge(state_df, on='state_fips', how='outer')
 
 merge
-#issues
-#from minhours, 60, 66, 69, 72 and 78 don't have shapefiles
-#60 is American Samoa, 66 is Guam, 69 is northern mariana islands,
-#72 is PR, 78 is Virgin Islands
-#I don't need any of these in my plots - states only
-
-#from state_df, 13 and 30 don't have Urban data
-#there's no open record for Georgia or Montana!
 
 
 #plot
 
 fig, ax = plt.subplots(figsize=(5,5))
-
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.1)
-
-ax = merge.plot(ax=ax, cmap = 'OrRd', column='num_ADU_apps', 
-                    legend=True, alpha=0.25, edgecolor='black', cax=cax)
-
+ax = merge.plot(ax=ax, column='EligMinWorkHours', legend=True, alpha=0.25)
 ax.axis('off')
-ax.set_title(f'{input.var()}, \n Chicago, by community area')
 
 
 #Income eligibility thresholds for family of 2
