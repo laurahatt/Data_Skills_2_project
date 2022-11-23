@@ -28,12 +28,18 @@ Created on Mon Nov 14 10:18:52 2022
 
 import os
 import pandas as pd
+import geopandas
 pd.set_option('display.max_columns', None)
 
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
 CCDF = os.path.join(path, 'CCDF_databook.xlsx')
 CCDF_full = pd.ExcelFile(CCDF)
 
+#State shapefile
+#https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html
+state_shp = os.path.join(path, 'cb_2018_us_state_500k/cb_2018_us_state_500k.shp')
+state_df  = geopandas.read_file(state_shp)
+state_df = state_df[['STATEFP', 'NAME', 'geometry']]
 
 #Reimbursement rates in each state
 #Note that I'm restricting to "majority rec", 
@@ -61,26 +67,25 @@ reimburse_policies = reimburse_policies[['State', 'ReimburseMultiplier']]
 reimburse_full = reimburse_policies.merge(reimburse, on='State', how='outer')
 
 #Calculate monthly rate
-def rate_calculator():
+#now calculate actual rate
+def rate_calculator(row):
     
-    ReimburseMultiplier = 1
-    
-    if ReimburseMultiplier == 1:
-        print('monthly')
-        pass
-    elif ReimburseMultiplier > 1 and ReimburseMultiplier <= 5:
-        print('weekly')
-        pass
-    elif ReimburseMultiplier > 5 and ReimburseMultiplier <= 30:
-        print('daily')
-        pass
-    elif ReimburseMultiplier >30 and ReimburseMultiplier <= 240:
-        print('hourly')
+    if row['ReimburseMultiplier'] == 1:
+        return('monthly')
+    elif row['ReimburseMultiplier'] > 1 and row['ReimburseMultiplier'] <= 5:
+        return('weekly')
+    elif row['ReimburseMultiplier'] > 5 and row['ReimburseMultiplier'] <= 30:
+        return('daily')
+    elif row['ReimburseMultiplier'] >30 and row['ReimburseMultiplier'] <= 240:
+        return('hourly')
     else:
-        print('what?')
+        return('what?')
     
-    
-rate_calculator()
+ 
+reimburse_full['FinalRate'] = reimburse_full.apply (lambda row: rate_calculator(row), axis=1)   
+reimburse_full
+ 
+
 
 #Current reimbursement rates in Washington State counties
 #this is not enough regions for a good regression
@@ -103,12 +108,53 @@ reimburse_WA
 #This PDF has the counties that correspond to regions
 
 
+#Job search as eligible activity
+eligcrit = pd.read_excel(CCDF_full, 'EligCriteria')
+eligcrit = eligcrit[eligcrit['MajorityRec'] == -1]
+eligcrit = eligcrit[eligcrit['EndDat'] == '9999/12/31']
+
+
+
+
+#Minimum hours of work to be eligible
+#Focusing on a single-parent household
+#and minimum hours for at least part-time care 
+
+minhours = eligcrit[['State', 'EligMinWorkHours', 'EligMinHoursAmount']]
+minhours
+
+
+
+
+#Income eligibility thresholds for family of 2
+#whether a family with a CPS case is exempt from copayments
+
+
+#Background checks of unlicensed home-based providers
+#note that some states may appear to have no backchecks,
+#but really they just have no unlicensed home-based providers
+
+
+
+
 
 #If I were going to go forward, I'd get def of regions, 
 #link to region shapefile, and then make chloropleth
 
 
-#
 
+#Other maps
 
+#Sentiment analysis of governor speeches
+#https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries
+#https://www.nasbo.org/resources/stateofthestates
+
+#Abortion access
+
+#Cost of childcare
+
+#Measure of state progressiveness?
+
+#Mean family income
+#https://fred.stlouisfed.org/release/tables?eid=257197&rid=110
 
