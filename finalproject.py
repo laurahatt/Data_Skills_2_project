@@ -29,6 +29,7 @@ Created on Mon Nov 14 10:18:52 2022
 import os
 import pandas as pd
 import geopandas
+import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
@@ -36,10 +37,13 @@ CCDF = os.path.join(path, 'CCDF_databook.xlsx')
 CCDF_full = pd.ExcelFile(CCDF)
 
 #State shapefile
-#https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html
-state_shp = os.path.join(path, 'cb_2018_us_state_500k/cb_2018_us_state_500k.shp')
+state_shp = os.path.join(path, 'UI_states.shp')
 state_df  = geopandas.read_file(state_shp)
-state_df = state_df[['STATEFP', 'NAME', 'geometry']]
+
+fig, ax = plt.subplots(figsize=(5,5))
+ax = state_df.plot(ax=ax, color='red', edgecolor='white');
+
+
 
 #Reimbursement rates in each state
 #Note that I'm restricting to "majority rec", 
