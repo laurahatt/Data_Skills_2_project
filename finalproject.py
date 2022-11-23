@@ -28,6 +28,8 @@ Created on Mon Nov 14 10:18:52 2022
 
 import os
 import pandas as pd
+import numpy as np
+import math
 import geopandas
 import matplotlib.pyplot as plt
 from datetime import strftime
@@ -155,17 +157,15 @@ minhours = record_selector(eligcrit)[['state_fips',
 
 
 def min_hours_interpreter(row):
-    """Interpret codes into weekly hours or text descriptions"""
+    """Interpret codes into number of hours per week"""
     
     if row['EligMinWorkHours'] == 1:
-        return('No minimum')
+        return(0)
     elif row['EligMinWorkHours'] == 2 or row['EligMinWorkHours'] == 3 :
         if row['EligMinHoursAmount'] >= 0:
             return(row['EligMinHoursAmount'])
-        elif row['EligMinHoursAmount'] == -5:
-            return('Not in manual')
         elif row['EligMinHoursAmount'] == -3:
-            return(row['EligMinHoursAmount_NOTES'])
+            return(-3) # This category is "Other"
         else:
             return('There is a problem here')
     else:
@@ -174,16 +174,38 @@ def min_hours_interpreter(row):
 minhours['Interpretation'] = minhours.apply (lambda row: min_hours_interpreter(row), axis=1)
 minhours = minhours[['state_fips', 'Interpretation']]
 
-merge = minhours.merge(state_df, on='state_fips', how='outer')
 
-merge
+def min_hours_classifier(row):
+    """Create categorical variable"""
+    
+    if row['Interpretation'] == 0:
+        return('No minimum')
+    elif row['Interpretation'] >= 15 and row['Interpretation'] < 20:
+        return('15 to 19 hours per week')
+    elif row['Interpretation'] >= 20 and row['Interpretation'] < 25:
+        return('20 to 24 hours per week')
+    elif row['Interpretation'] >= 25 and row['Interpretation'] < 30:
+        return('25 to 29 hours per week')
+    elif row['Interpretation'] == 30:
+        return('30 hours per week')
+    elif row['Interpretation'] == -3:
+        return('Other')
+    else:
+        return('There is a problem here')
 
+minhours['Category'] = minhours.apply (lambda row: min_hours_classifier(row), axis=1)
+
+minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
 
 #plot
 
-fig, ax = plt.subplots(figsize=(5,5))
-ax = merge.plot(ax=ax, column='EligMinWorkHours', legend=True, alpha=0.25)
+fig, ax = plt.subplots(1, figsize=(5,5))
+minhours_geo.plot(column='Category', categorical=True, cmap='OrRd', 
+                  linewidth=.6, edgecolor='0.2',
+                  legend=True, ax=ax)
 ax.axis('off')
+
+
 
 
 #Income eligibility thresholds for family of 2
