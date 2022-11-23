@@ -30,6 +30,7 @@ import os
 import pandas as pd
 import geopandas
 import matplotlib.pyplot as plt
+from datetime import strftime
 pd.set_option('display.max_columns', None)
 
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
@@ -115,19 +116,69 @@ reimburse_WA
 #Job search as eligible activity
 eligcrit = pd.read_excel(CCDF_full, 'EligCriteria')
 eligcrit = eligcrit[eligcrit['MajorityRec'] == -1]
-eligcrit = eligcrit[eligcrit['EndDat'] == '9999/12/31']
+eligcrit.rename(columns = {'State':'state_fips'}, inplace = True)
+eligcrit = eligcrit[eligcrit['state_fips'] < 60]
 
-
-
-
+def record_selector(sheet): 
+    """For each state, select current record (marked 999/12/31) or most recent record."""
+    
+    current_records = pd.DataFrame()
+    list_of_states = list(sheet['state_fips'].unique())
+    for state in list_of_states:
+        df = sheet[sheet['state_fips'] == state]
+        if '9999/12/31' in list(df['EndDat']):
+            new_row = df[df['EndDat'] ==  '9999/12/31']
+            current_records = pd.concat([current_records, new_row], axis=0, ignore_index=True)
+        else:
+            latest_date = df['EndDat'].apply(pd.to_datetime).max()
+            new_row = df.loc[df['EndDat'] == latest_date.strftime('%Y/%m/%d')] 
+            current_records = pd.concat([current_records, new_row], axis=0, ignore_index=True)
+    return(current_records)
+        
 #Minimum hours of work to be eligible
 #Focusing on a single-parent household
 #and minimum hours for at least part-time care 
 
-minhours = eligcrit[['State', 'EligMinWorkHours', 'EligMinHoursAmount']]
+minhours = record_selector(eligcrit)[['state_fips', 'EndDat', 'EligMinWorkHours', 'EligMinHoursAmount']]
 minhours
 
 
+#issue with more states in minhours than in state_df
+len(minhours)
+len(state_df)
+
+minhours.dtypes #int
+state_df.dtypes #obj
+
+minhours['state_fips']
+
+state_df = state_df.astype({'state_fips':'int'})
+merge = minhours.merge(state_df, on='state_fips', how='outer')
+
+merge
+#issues
+#from minhours, 60, 66, 69, 72 and 78 don't have shapefiles
+#60 is American Samoa, 66 is Guam, 69 is northern mariana islands,
+#72 is PR, 78 is Virgin Islands
+#I don't need any of these in my plots - states only
+
+#from state_df, 13 and 30 don't have Urban data
+#there's no open record for Georgia or Montana!
+
+
+#plot
+
+fig, ax = plt.subplots(figsize=(5,5))
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+divider = make_axes_locatable(ax)
+cax = divider.append_axes('right', size='5%', pad=0.1)
+
+ax = merge.plot(ax=ax, cmap = 'OrRd', column='num_ADU_apps', 
+                    legend=True, alpha=0.25, edgecolor='black', cax=cax)
+
+ax.axis('off')
+ax.set_title(f'{input.var()}, \n Chicago, by community area')
 
 
 #Income eligibility thresholds for family of 2
