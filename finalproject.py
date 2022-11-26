@@ -198,7 +198,7 @@ fig, ax = plt.subplots(1, figsize=(5,5))
 jobsearch_geo.plot(column='Category', categorical=True, cmap='YlGn', 
                   linewidth=.6, edgecolor='0.2',
                   legend=True, 
-                  legend_kwds={'bbox_to_anchor':(1.6, 0.9), 'frameon':False}, 
+                  legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
                   ax=ax)
 legend_dict = {0: 'None',
                1: 'One month',
@@ -273,24 +273,22 @@ app_ui = ui.page_fluid(
     ui.row(ui.column(12, ui.h3(' '))),
     ui.row(ui.column(12, ui.h3(' '))),
     ui.row(
-        ui.column(12, 
+        ui.column(6, 
                   ui.input_select(id='var',
-                                  label='Choose a variable',
-                                  choices= ['Minimum Work Hour Requirements',
-                                            'Job search']),
-                  align='center'
-            )
+                                  label='Choose a CCDF variable',
+                                  choices= ['Minimum work hour requirements',
+                                            'Duration of eligibility while unemployed']),
+                  align='center'),
+        ui.column(6, 
+                  ui.input_select(id='comp',
+                                  label='Choose a complementary variable',
+                                  choices= ['A',
+                                            'B']),
+                  align='center')
         ),
     ui.row(
-        ui.column(12, 
-                  ui.input_select(id='rail',
-                                  label='View rail lines?',
-                                  choices= ['Yes','No']),
-                  align='center'
-            )
-        ),
-    ui.row(
-        ui.column(12, ui.output_plot('chloropleth_maker'), align='center')
+        ui.column(6, ui.output_plot('CCDF_mapper'), align='center'),
+        ui.column(6)
         ),
     ui.row(
         ui.column(12, 
@@ -304,14 +302,15 @@ def server(input, output, session):
 
     @output
     @render.plot
-    def chloropleth_maker():
+    def CCDF_mapper():
+        #I want to put the legend UNDER the graph
         fig, ax = plt.subplots(1, figsize=(5,5))
         
-        if input.var() == 'Minimum Work Hour Requirements':
+        if input.var() == 'Minimum work hour requirements':
             ax = minhours_geo.plot(column='Category', categorical=True, cmap='YlGn', 
                                   linewidth=.6, edgecolor='0.2',
                                   legend=True, 
-                                  legend_kwds={'bbox_to_anchor':(1.6, 0.9), 'frameon':False}, 
+                                  legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
                                   ax=ax)
             legend_dict = {0: 'No minimum',
                            1: '15 to 19 hours per week',
@@ -325,13 +324,13 @@ def server(input, output, session):
                         if txt.get_text() == str(k):
                             txt.set_text(v)
             replace_legend_items(ax.get_legend(), legend_dict)
-            ax.set_title('State Minimum Work Hour Requirements (2019)')
+            ax.set_title('Minimum Work Hour Requirements, By State')
                  
         else:
              ax = jobsearch_geo.plot(column='Category', categorical=True, cmap='YlGn', 
                                linewidth=.6, edgecolor='0.2',
                                legend=True, 
-                               legend_kwds={'bbox_to_anchor':(1.6, 0.9), 'frameon':False}, 
+                               legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
                                ax=ax)
              legend_dict = {0: 'None',
                             1: 'One month',
@@ -345,7 +344,7 @@ def server(input, output, session):
                              txt.set_text(v)
              replace_legend_items(ax.get_legend(), legend_dict)
 
-             ax.set_title('Maximum time an applicant may engage in job search, upon initial application')
+             ax.set_title('Duration of eligibility while unemployed but searching for work, \n upon initial application')
         
         ax.axis('off')
         
