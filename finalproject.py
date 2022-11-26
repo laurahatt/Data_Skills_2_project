@@ -10,8 +10,9 @@ import os
 import pandas as pd
 import geopandas
 import matplotlib.pyplot as plt
-from datetime import strftime
+#from datetime import strftime
 pd.set_option('display.max_columns', None)
+from shiny import App, render, ui
 
 #Load Urban Institute database of state child care policies
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
@@ -94,28 +95,10 @@ minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
 #plot
 #Need to turn this into a function
 
-fig, ax = plt.subplots(1, figsize=(5,5))
-minhours_geo.plot(column='Category', categorical=True, cmap='YlGn', 
-                  linewidth=.6, edgecolor='0.2',
-                  legend=True, 
-                  legend_kwds={'bbox_to_anchor':(1.6, 0.9), 'frameon':False}, 
-                  ax=ax)
 
-legend_dict = {0: 'No minimum',
-               1: '15 to 19 hours per week',
-               2: '20 to 24 hours per week',
-               3: '25 to 29 hours per week',
-               4: '30 hours per week',
-               5: 'Other'}
-def replace_legend_items(legend, legend_dict):
-    for txt in legend.texts:
-        for k,v in legend_dict.items():
-            if txt.get_text() == str(k):
-                txt.set_text(v)
-replace_legend_items(ax.get_legend(), legend_dict)
 
-ax.axis('off')
-ax.set_title('State Minimum Work Hour Requirements (2019)')
+
+
 
 #Can I set "other" to gray?
 #Can I center the title to be over the legend as well?
@@ -275,4 +258,98 @@ ax.set_title('job search')
 
 #Mean family income
 #https://fred.stlouisfed.org/release/tables?eid=257197&rid=110
+
+app_ui = ui.page_fluid(
+    ui.row(
+        ui.column(12, 
+                  ui.h1('Final Project'), 
+                  align='center')
+        ),
+    ui.row(
+        ui.column(12, 
+                  ui.h4('Created by Laura Hatt'), 
+                  align='center')
+        ),
+    ui.row(ui.column(12, ui.h3(' '))),
+    ui.row(ui.column(12, ui.h3(' '))),
+    ui.row(
+        ui.column(12, 
+                  ui.input_select(id='var',
+                                  label='Choose a variable',
+                                  choices= ['Minimum Work Hour Requirements',
+                                            'Job search']),
+                  align='center'
+            )
+        ),
+    ui.row(
+        ui.column(12, 
+                  ui.input_select(id='rail',
+                                  label='View rail lines?',
+                                  choices= ['Yes','No']),
+                  align='center'
+            )
+        ),
+    ui.row(
+        ui.column(12, ui.output_plot('chloropleth_maker'), align='center')
+        ),
+    ui.row(
+        ui.column(12, 
+                  ui.h6('Data from XX'), 
+                  align='center')
+        )
+)
+
+
+def server(input, output, session):
+
+    @output
+    @render.plot
+    def chloropleth_maker():
+        fig, ax = plt.subplots(1, figsize=(5,5))
+        
+        if input.var() == 'Minimum Work Hour Requirements':
+            ax = minhours_geo.plot(column='Category', categorical=True, cmap='YlGn', 
+                                  linewidth=.6, edgecolor='0.2',
+                                  legend=True, 
+                                  legend_kwds={'bbox_to_anchor':(1.6, 0.9), 'frameon':False}, 
+                                  ax=ax)
+            legend_dict = {0: 'No minimum',
+                           1: '15 to 19 hours per week',
+                           2: '20 to 24 hours per week',
+                           3: '25 to 29 hours per week',
+                           4: '30 hours per week',
+                           5: 'Other'}
+            def replace_legend_items(legend, legend_dict):
+                for txt in legend.texts:
+                    for k,v in legend_dict.items():
+                        if txt.get_text() == str(k):
+                            txt.set_text(v)
+            replace_legend_items(ax.get_legend(), legend_dict)
+            ax.set_title('State Minimum Work Hour Requirements (2019)')
+                 
+        else:
+             ax = jobsearch_geo.plot(column='Category', categorical=True, cmap='YlGn', 
+                               linewidth=.6, edgecolor='0.2',
+                               legend=True, 
+                               legend_kwds={'bbox_to_anchor':(1.6, 0.9), 'frameon':False}, 
+                               ax=ax)
+             legend_dict = {0: 'None',
+                            1: 'One month',
+                            2: 'Three months',
+                            3: 'Six months',
+                            4: 'One year'}
+             def replace_legend_items(legend, legend_dict):
+                 for txt in legend.texts:
+                     for k,v in legend_dict.items():
+                         if txt.get_text() == str(k):
+                             txt.set_text(v)
+             replace_legend_items(ax.get_legend(), legend_dict)
+
+             ax.set_title('Maximum time an applicant may engage in job search, upon initial application')
+        
+        ax.axis('off')
+        
+        return ax
+
+app = App(app_ui, server)
 
