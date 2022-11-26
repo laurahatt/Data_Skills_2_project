@@ -93,6 +93,7 @@ minhours = minhours[['state_fips', 'Number_hours', 'Category']]
 minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
 
 #plot
+#Need to turn this into a function
 
 fig, ax = plt.subplots(1, figsize=(5,5))
 minhours_geo.plot(column='Category', categorical=True, cmap='YlGn', 
@@ -124,54 +125,7 @@ ax.set_title('State Minimum Work Hour Requirements (2019)')
 #Job search as eligible activity
 
 
-#Reimbursement rates in each state
-#Note that I'm restricting to "majority rec", 
-#which includes only one provider type (usually a type of center)
-#only one county per state, if multiple
-#only rate for first child in a family
-#not considering special rates, such as special needs, etc.
-#also note year - this is FFY2020, I believe
 
-
-reimburse = record_selector('ReimburseRates')[['state_fips', 
-                                               'ReimburseHourly1']]
-
-reimburse = pd.read_excel(CCDF_full, 'ReimburseRates')
-reimburse = reimburse[reimburse['MajorityRec'] == -1]
-reimburse = reimburse[reimburse['EndDat'] == '9999/12/31']
-reimburse = reimburse[['State', 'County', 'ReimburseRatesProviderType', 
-                       'ReimburseHourly1', 'ReimburseDailyFull1', 
-                       'ReimburseDailyPart1','ReimburseWeeklyFull1', 
-                       'ReimburseWeeklyPart1', 'ReimburseMonthlyFull1', 
-                       'ReimburseMonthlyPart1', 'Notes']]
-
-#Multipliers
-reimburse_policies = pd.read_excel(CCDF_full, 'ReimbursePolicies')
-reimburse_policies = reimburse_policies[reimburse_policies['MajorityRec'] == -1]
-reimburse_policies = reimburse_policies[reimburse_policies['EndDat'] == '9999/12/31']
-reimburse_policies = reimburse_policies[['State', 'ReimburseMultiplier']]
-
-#Merge rates and multipliers
-reimburse_full = reimburse_policies.merge(reimburse, on='State', how='outer')
-
-#Calculate monthly rate
-#now calculate actual rate
-def rate_calculator(row):
-    
-    if row['ReimburseMultiplier'] == 1:
-        return('monthly')
-    elif row['ReimburseMultiplier'] > 1 and row['ReimburseMultiplier'] <= 5:
-        return('weekly')
-    elif row['ReimburseMultiplier'] > 5 and row['ReimburseMultiplier'] <= 30:
-        return('daily')
-    elif row['ReimburseMultiplier'] >30 and row['ReimburseMultiplier'] <= 240:
-        return('hourly')
-    else:
-        return('what?')
-    
- 
-reimburse_full['FinalRate'] = reimburse_full.apply (lambda row: rate_calculator(row), axis=1)   
-reimburse_full
 
 
 
