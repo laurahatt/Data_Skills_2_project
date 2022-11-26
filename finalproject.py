@@ -124,12 +124,6 @@ ax.set_title('State Minimum Work Hour Requirements (2019)')
 #Job search as eligible activity
 #at INITIAL application
 
-jobsearch = record_selector('EligCriteria')[['state_fips', 
-                                             'EligApproveActivityJobSearch',
-                                             'EligMaxTimeJobSearch', 
-                                             'EligMaxTimeJobSearchUnit',
-                                             'EligMaxTimeJobSearchTimeFrame']]
-
 
 #(0) NA
 #(1) Yes, for initial and continuing eligibility
@@ -158,10 +152,6 @@ def jobsearch_translator(row):
     else:
         return('-6')  #Other  - New York
 
-jobsearch['Search_time'] = jobsearch.apply (lambda row: jobsearch_translator(row), axis=1)
-jobsearch = jobsearch.astype({'Search_time':'int'})
-
-
 def jobsearch_day_multiplier(row):
     """Translate codes into time"""
     if row['Search_time'] == 0:
@@ -178,12 +168,6 @@ def jobsearch_day_multiplier(row):
     else:
         return(row['Search_time'])
 
-
-jobsearch['Day_multiplier'] = jobsearch.apply (lambda row: jobsearch_day_multiplier(row), axis=1)
-jobsearch[['state_fips', 'EligApproveActivityJobSearch', 
-           'EligMaxTimeJobSearch', 'Search_time', 
-           'EligMaxTimeJobSearchUnit', 'Day_multiplier']]
-
 def jobsearch_day_generator(row):
     if row['Search_time'] == 0:
         return(0) #Job search not eligible at initial application
@@ -196,14 +180,59 @@ def jobsearch_day_generator(row):
     else:
         return('Problem')
     
+def jobsearch_classifier(row):
+    """Translate number of hours into categorical variable"""
+    if row['Days'] == 0:
+        return(0) #No minimum
+    elif row['Days'] == 30:
+        return(1) #30 days
+    elif row['Days'] >= 84 and row['Days'] < 92:
+        return(2) #12 weeks or 3 months
+    elif row['Days'] == 180:
+        return(3) #6 months
+    else: 
+        return(4) #one year
+
+jobsearch = record_selector('EligCriteria')[['state_fips', 
+                                             'EligApproveActivityJobSearch',
+                                             'EligMaxTimeJobSearch', 
+                                             'EligMaxTimeJobSearchUnit',
+                                             'EligMaxTimeJobSearchTimeFrame']]
+
+
+jobsearch['Search_time'] = jobsearch.apply (lambda row: jobsearch_translator(row), axis=1)
+jobsearch = jobsearch.astype({'Search_time':'int'})
+jobsearch['Day_multiplier'] = jobsearch.apply (lambda row: jobsearch_day_multiplier(row), axis=1)    
 jobsearch['Days'] = jobsearch.apply (lambda row: jobsearch_day_generator(row), axis=1)
-jobsearch[['state_fips', 'EligApproveActivityJobSearch', 
-           'EligMaxTimeJobSearch', 'Search_time', 
-           'EligMaxTimeJobSearchUnit', 'Day_multiplier', 'Days']]
+jobsearch['Category'] = jobsearch.apply (lambda row: jobsearch_classifier(row), axis=1)
+jobsearch = jobsearch[['state_fips', 'Search_time', 'Day_multiplier', 'Days', 'Category']]
 
-
+jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
 
 #OK - now plot!
+
+fig, ax = plt.subplots(1, figsize=(5,5))
+jobsearch_geo.plot(column='Category', categorical=True, cmap='YlGn', 
+                  linewidth=.6, edgecolor='0.2',
+                  legend=True, 
+                  legend_kwds={'bbox_to_anchor':(1.6, 0.9), 'frameon':False}, 
+                  ax=ax)
+legend_dict = {0: 'None',
+               1: 'One month',
+               2: 'Three months',
+               3: 'Six months',
+               4: 'One year'}
+def replace_legend_items(legend, legend_dict):
+    for txt in legend.texts:
+        for k,v in legend_dict.items():
+            if txt.get_text() == str(k):
+                txt.set_text(v)
+replace_legend_items(ax.get_legend(), legend_dict)
+
+ax.axis('off')
+ax.set_title('job search')
+
+
 
 #(0) NA
 #(2) Days
