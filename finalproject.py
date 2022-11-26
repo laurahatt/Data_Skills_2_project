@@ -53,13 +53,9 @@ def record_selector(sheet_name):
 #Focusing on a single-parent household
 #and minimum hours for at least part-time care 
 
-minhours = record_selector('EligCriteria')[['state_fips',
-                                            'EligMinWorkHours',
-                                            'EligMinHoursAmount',
-                                            'EligMinHoursAmount_NOTES']]
+minhours = record_selector('EligCriteria')[['state_fips','EligMinWorkHours','EligMinHoursAmount']]
 
-def min_hours_interpreter(row):
-    
+def min_hours_translator(row):
     """Translate codes into number of hours per week"""
     if row['EligMinWorkHours'] == 1:
         return(0)
@@ -73,29 +69,26 @@ def min_hours_interpreter(row):
     else:
         return('There is a problem here') 
 
-minhours['Interpretation'] = minhours.apply (lambda row: min_hours_interpreter(row), axis=1)
-minhours = minhours[['state_fips', 'Interpretation']]
-
-
 def min_hours_classifier(row):
-    """Create categorical variable"""
-    
-    if row['Interpretation'] == 0:
-        return(0)
-    elif row['Interpretation'] >= 15 and row['Interpretation'] < 20:
-        return(1)
-    elif row['Interpretation'] >= 20 and row['Interpretation'] < 25:
-        return(2)
-    elif row['Interpretation'] >= 25 and row['Interpretation'] < 30:
-        return(3)
-    elif row['Interpretation'] == 30:
-        return(4)
-    elif row['Interpretation'] == -3:
-        return(5)
+    """Translate number of hours into categorical variable"""
+    if row['Number_hours'] == 0:
+        return(0) #No minimum
+    elif row['Number_hours'] >= 15 and row['Number_hours'] < 20:
+        return(1) #15-19 hours/week
+    elif row['Number_hours'] >= 20 and row['Number_hours'] < 25:
+        return(2) #20-24 hours/week
+    elif row['Number_hours'] >= 25 and row['Number_hours'] < 30:
+        return(3) #25-29 hours/week
+    elif row['Number_hours'] == 30:
+        return(4) #30 hours/week
+    elif row['Number_hours'] == -3:
+        return(5) #"Other"
     else:
         return(6)
 
+minhours['Number_hours'] = minhours.apply (lambda row: min_hours_translator(row), axis=1)
 minhours['Category'] = minhours.apply (lambda row: min_hours_classifier(row), axis=1)
+minhours = minhours[['state_fips', 'Number_hours', 'Category']]
 
 minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
 
