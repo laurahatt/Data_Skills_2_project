@@ -28,8 +28,6 @@ Created on Mon Nov 14 10:18:52 2022
 
 import os
 import pandas as pd
-import numpy as np
-import math
 import geopandas
 import matplotlib.pyplot as plt
 from datetime import strftime
@@ -43,11 +41,6 @@ CCDF_full = pd.ExcelFile(CCDF)
 state_shp = os.path.join(path, 'UI_states.shp')
 state_df  = geopandas.read_file(state_shp)
 state_df = state_df.astype({'state_fips':'int'})
-
-fig, ax = plt.subplots(figsize=(5,5))
-ax = state_df.plot(ax=ax, color='red', edgecolor='white');
-
-
 
 #Reimbursement rates in each state
 #Note that I'm restricting to "majority rec", 
@@ -179,19 +172,19 @@ def min_hours_classifier(row):
     """Create categorical variable"""
     
     if row['Interpretation'] == 0:
-        return('No minimum')
+        return(0)
     elif row['Interpretation'] >= 15 and row['Interpretation'] < 20:
-        return('15 to 19 hours per week')
+        return(1)
     elif row['Interpretation'] >= 20 and row['Interpretation'] < 25:
-        return('20 to 24 hours per week')
+        return(2)
     elif row['Interpretation'] >= 25 and row['Interpretation'] < 30:
-        return('25 to 29 hours per week')
+        return(3)
     elif row['Interpretation'] == 30:
-        return('30 hours per week')
+        return(4)
     elif row['Interpretation'] == -3:
-        return('Other')
+        return(5)
     else:
-        return('There is a problem here')
+        return(6)
 
 minhours['Category'] = minhours.apply (lambda row: min_hours_classifier(row), axis=1)
 
@@ -200,10 +193,31 @@ minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
 #plot
 
 fig, ax = plt.subplots(1, figsize=(5,5))
-minhours_geo.plot(column='Category', categorical=True, cmap='OrRd', 
+minhours_geo.plot(column='Category', categorical=True, cmap='YlGn', 
                   linewidth=.6, edgecolor='0.2',
-                  legend=True, ax=ax)
+                  legend=True, 
+                  legend_kwds={'bbox_to_anchor':(1.6, 0.9), 'frameon':False}, 
+                  ax=ax)
+
+legend_dict = {0: 'No minimum',
+               1: '15 to 19 hours per week',
+               2: '20 to 24 hours per week',
+               3: '25 to 29 hours per week',
+               4: '30 hours per week',
+               5: 'Other'}
+def replace_legend_items(legend, legend_dict):
+    for txt in legend.texts:
+        for k,v in legend_dict.items():
+            if txt.get_text() == str(k):
+                txt.set_text(v)
+replace_legend_items(ax.get_legend(), legend_dict)
+
 ax.axis('off')
+ax.set_title('State Minimum Work Hour Requirements (2019)')
+
+#Can I set "other" to gray?
+
+
 
 
 
