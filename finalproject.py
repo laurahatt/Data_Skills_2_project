@@ -53,8 +53,6 @@ def record_selector(sheet_name):
 #Focusing on a single-parent household
 #and minimum hours for at least part-time care 
 
-minhours = record_selector('EligCriteria')[['state_fips','EligMinWorkHours','EligMinHoursAmount']]
-
 def min_hours_translator(row):
     """Translate codes into number of hours per week"""
     if row['EligMinWorkHours'] == 1:
@@ -86,10 +84,11 @@ def min_hours_classifier(row):
     else:
         return(6)
 
+#I bet I could organize these in a function too
+minhours = record_selector('EligCriteria')[['state_fips','EligMinWorkHours','EligMinHoursAmount']]
 minhours['Number_hours'] = minhours.apply (lambda row: min_hours_translator(row), axis=1)
 minhours['Category'] = minhours.apply (lambda row: min_hours_classifier(row), axis=1)
 minhours = minhours[['state_fips', 'Number_hours', 'Category']]
-
 minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
 
 #plot
@@ -123,11 +122,97 @@ ax.set_title('State Minimum Work Hour Requirements (2019)')
 
 
 #Job search as eligible activity
+#at INITIAL application
+
+jobsearch = record_selector('EligCriteria')[['state_fips', 
+                                             'EligApproveActivityJobSearch',
+                                             'EligMaxTimeJobSearch', 
+                                             'EligMaxTimeJobSearchUnit',
+                                             'EligMaxTimeJobSearchTimeFrame']]
+
+
+#(0) NA
+#(1) Yes, for initial and continuing eligibility
+#(2) Yes, only for continuing eligibility
+#(3) No
+
+def jobsearch_translator(row):
+    """Translate codes into time"""
+    if row['EligApproveActivityJobSearch'] == 2 or row['EligApproveActivityJobSearch'] == 3:
+        return(0) #Job search not eligible at initial application
+    elif row['EligApproveActivityJobSearch'] == 1:
+        if row['EligMaxTimeJobSearch'] >= 0:
+            return(row['EligMaxTimeJobSearch'])
+        elif row['EligMaxTimeJobSearch'] == -1:
+            return(-1) # Through end of eligibility period
+        elif row['EligMaxTimeJobSearch'] == -2:
+            return(-2) # No limit
+        elif row['EligMaxTimeJobSearch'] == -3:
+            return(-3) # Other 
+        elif row['EligMaxTimeJobSearch'] == -4:
+            return(-4) # NA
+        elif row['EligMaxTimeJobSearch'] == -5:
+            return(-5) # Not in manual
+        else:
+            return('Problem A')
+    else:
+        return('-6')  #Other  - New York
+
+jobsearch['Search_time'] = jobsearch.apply (lambda row: jobsearch_translator(row), axis=1)
+jobsearch = jobsearch.astype({'Search_time':'int'})
+
+
+def jobsearch_day_multiplier(row):
+    """Translate codes into time"""
+    if row['Search_time'] == 0:
+        return(0) #Job search not eligible at initial application
+    elif row['Search_time'] > 0:
+        if row['EligMaxTimeJobSearchUnit'] == 2:
+            return(1) #Units are already in days
+        elif row['EligMaxTimeJobSearchUnit'] == 3:
+            return(7) #Units are currently in weeks
+        elif row['EligMaxTimeJobSearchUnit'] == 4:
+            return(30) #Units are currently in months
+        else:
+            return('Problem A')
+    else:
+        return(row['Search_time'])
+
+
+jobsearch['Day_multiplier'] = jobsearch.apply (lambda row: jobsearch_day_multiplier(row), axis=1)
+jobsearch[['state_fips', 'EligApproveActivityJobSearch', 
+           'EligMaxTimeJobSearch', 'Search_time', 
+           'EligMaxTimeJobSearchUnit', 'Day_multiplier']]
+
+def jobsearch_day_generator(row):
+    if row['Search_time'] == 0:
+        return(0) #Job search not eligible at initial application
+    elif row['Search_time'] > 0:
+        return(row['Search_time'] * row['Day_multiplier'])
+    elif row['Search_time'] == -1:
+        return(365) #Special case for California
+    elif row['Search_time'] == -6:
+        return(180) #Special case for New York
+    else:
+        return('Problem')
+    
+jobsearch['Days'] = jobsearch.apply (lambda row: jobsearch_day_generator(row), axis=1)
+jobsearch[['state_fips', 'EligApproveActivityJobSearch', 
+           'EligMaxTimeJobSearch', 'Search_time', 
+           'EligMaxTimeJobSearchUnit', 'Day_multiplier', 'Days']]
 
 
 
+#OK - now plot!
+
+#(0) NA
+#(2) Days
+#(3) Weeks
+#(4) Months
 
 
+
+#average days in a month: average is 30.437
 
 
 #Income eligibility thresholds for family of 2
