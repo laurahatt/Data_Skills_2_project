@@ -92,27 +92,11 @@ minhours['Category'] = minhours.apply (lambda row: min_hours_classifier(row), ax
 minhours = minhours[['state_fips', 'Number_hours', 'Category']]
 minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
 
-#plot
-#Need to turn this into a function
-
-
-
-
-
-
-#Can I set "other" to gray?
-#Can I center the title to be over the legend as well?
-
 
 #Job search as eligible activity
 #at INITIAL application
 
-
-#(0) NA
-#(1) Yes, for initial and continuing eligibility
-#(2) Yes, only for continuing eligibility
-#(3) No
-
+#Can I consolidate these four functions into one?
 def jobsearch_translator(row):
     """Translate codes into time"""
     if row['EligApproveActivityJobSearch'] == 2 or row['EligApproveActivityJobSearch'] == 3:
@@ -192,56 +176,9 @@ jobsearch = jobsearch[['state_fips', 'Search_time', 'Day_multiplier', 'Days', 'C
 
 jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
 
-#OK - now plot!
-
-fig, ax = plt.subplots(1, figsize=(5,5))
-jobsearch_geo.plot(column='Category', categorical=True, cmap='YlGn', 
-                  linewidth=.6, edgecolor='0.2',
-                  legend=True, 
-                  legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
-                  ax=ax)
-legend_dict = {0: 'None',
-               1: 'One month',
-               2: 'Three months',
-               3: 'Six months',
-               4: 'One year'}
-def replace_legend_items(legend, legend_dict):
-    for txt in legend.texts:
-        for k,v in legend_dict.items():
-            if txt.get_text() == str(k):
-                txt.set_text(v)
-replace_legend_items(ax.get_legend(), legend_dict)
-
-ax.axis('off')
-ax.set_title('job search')
-
-
-
-#(0) NA
-#(2) Days
-#(3) Weeks
-#(4) Months
-
-
-
-#average days in a month: average is 30.437
-
 
 #Income eligibility thresholds for family of 2
 #whether a family with a CPS case is exempt from copayments
-
-
-#Background checks of unlicensed home-based providers
-#note that some states may appear to have no backchecks,
-#but really they just have no unlicensed home-based providers
-
-
-
-
-
-#If I were going to go forward, I'd get def of regions, 
-#link to region shapefile, and then make chloropleth
-
 
 
 #Other maps
@@ -258,6 +195,9 @@ ax.set_title('job search')
 
 #Mean family income
 #https://fred.stlouisfed.org/release/tables?eid=257197&rid=110
+
+
+
 
 app_ui = ui.page_fluid(
     ui.row(
@@ -303,50 +243,43 @@ def server(input, output, session):
     @output
     @render.plot
     def CCDF_mapper():
-        #I want to put the legend UNDER the graph
+        #Can I set "other" to gray?
         fig, ax = plt.subplots(1, figsize=(5,5))
         
         if input.var() == 'Minimum work hour requirements':
-            ax = minhours_geo.plot(column='Category', categorical=True, cmap='YlGn', 
+            ax = minhours_geo.plot(column='Category', categorical=True, cmap='RdBu_r', 
                                   linewidth=.6, edgecolor='0.2',
                                   legend=True, 
                                   legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
                                   ax=ax)
+            ax.set_title('Minimum Work Hour Requirements')
             legend_dict = {0: 'No minimum',
                            1: '15 to 19 hours per week',
                            2: '20 to 24 hours per week',
                            3: '25 to 29 hours per week',
                            4: '30 hours per week',
                            5: 'Other'}
-            def replace_legend_items(legend, legend_dict):
-                for txt in legend.texts:
-                    for k,v in legend_dict.items():
-                        if txt.get_text() == str(k):
-                            txt.set_text(v)
-            replace_legend_items(ax.get_legend(), legend_dict)
-            ax.set_title('Minimum Work Hour Requirements, By State')
-                 
         else:
-             ax = jobsearch_geo.plot(column='Category', categorical=True, cmap='YlGn', 
+             ax = jobsearch_geo.plot(column='Category', categorical=True, cmap='RdBu', 
                                linewidth=.6, edgecolor='0.2',
                                legend=True, 
                                legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
                                ax=ax)
-             legend_dict = {0: 'None',
+             ax.set_title('Duration of eligibility while unemployed but searching for work, \n upon initial application')
+             legend_dict = {0: 'Not eligible while job searching',
                             1: 'One month',
                             2: 'Three months',
                             3: 'Six months',
                             4: 'One year'}
-             def replace_legend_items(legend, legend_dict):
-                 for txt in legend.texts:
-                     for k,v in legend_dict.items():
-                         if txt.get_text() == str(k):
-                             txt.set_text(v)
-             replace_legend_items(ax.get_legend(), legend_dict)
 
-             ax.set_title('Duration of eligibility while unemployed but searching for work, \n upon initial application')
-        
         ax.axis('off')
+        
+        def replace_legend_items(legend, legend_dict):
+            for txt in legend.texts:
+                for k,v in legend_dict.items():
+                    if txt.get_text() == str(k):
+                        txt.set_text(v)
+        replace_legend_items(ax.get_legend(), legend_dict)
         
         return ax
 
