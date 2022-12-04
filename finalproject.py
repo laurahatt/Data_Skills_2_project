@@ -340,13 +340,16 @@ def server(input, output, session):
                                  cmap='RdBu', linewidth=.6, edgecolor='0.2',
                                  ax=ax)
             
-            range_min = income['med_inc'].min()
-            range_max = income['med_inc'].max()
-            cmap = plt.cm.ScalarMappable(
-                norm = mcolors.Normalize(range_min, range_max),
-                cmap = plt.get_cmap('RdBu_r'))
-            cmap.set_array([])
-            colorbar(cmap, cax=cax, orientation="horizontal")
+            def cmap_maker(column, colors):
+                range_min = income[column].min()
+                range_max = income[column].max()
+                cmap = plt.cm.ScalarMappable(
+                    norm = mcolors.Normalize(range_min, range_max),
+                    cmap = plt.get_cmap(colors))
+                cmap.set_array([])
+                return(cmap)
+            
+            colorbar(cmap_maker('med_inc', 'RdBu_r'), cax=cax, orientation="horizontal")
             
             ax.set_title('Median Household Income (2019)')
         
@@ -358,37 +361,6 @@ def server(input, output, session):
         
 
 app = App(app_ui, server)
-
-### turning colorbar horizontal ###
-
-
-
-fig, ax = plt.subplots(1, figsize=(5,5))
-ax.axis('off')
-
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('bottom', size='10%', pad=0.1)
-
-ax = income_geo.plot(column='med_inc', categorical=False, 
-                     cmap='RdBu', linewidth=.6, edgecolor='0.2',
-                     ax=ax)
-
-ax.set_title('Median Household Income (2019)')
-
-range_min = income['med_inc'].min()
-range_max = income['med_inc'].max()
-cmap = plt.cm.ScalarMappable(
-    norm = mcolors.Normalize(range_min, range_max),
-    cmap = plt.get_cmap('RdBu_r'))
-cmap.set_array([])
-
-cb = colorbar(cmap, cax=cax, orientation="horizontal")
-
-#https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.colorbar.html
-#https://stackoverflow.com/questions/28801803/matplotlib-scalarmappable-why-need-to-set-array-if-norm-set
-#https://matplotlib.org/stable/tutorials/colors/colorbar_only.html
-
 
 
 
