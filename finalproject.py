@@ -11,6 +11,8 @@ import pandas as pd
 import geopandas
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
+import pandas_datareader.data as web
+import datetime
 from shiny import App, render, ui
 
 #Load Urban Institute database of state child care policies
@@ -183,6 +185,35 @@ jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
 
 
                     ###NON-CCDF DATA CLEANING###
+                    
+                    
+'cat' + 'dog'                   
+
+#Mean family income
+
+states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
+          "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", 
+          "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", 
+          "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", 
+          "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
+
+def code_maker(states):
+    list_of_codes = []
+    for st in states:
+        fred_code = 'MEHOINUS' + st + 'A646N'
+        list_of_codes.append(fred_code)
+    return(list_of_codes)
+
+start = datetime.datetime(2019, 1, 1)
+end = datetime.datetime(2019, 1, 1)
+
+inc_all = web.DataReader(code_maker(states), 'fred', start, end)
+inc_all.columns = states
+inc_all = inc_all.transpose()
+inc_all
+
+
+
 
 #Sentiment analysis of governor speeches
 #https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries
@@ -197,8 +228,6 @@ jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
 #Measure of state progressiveness?
 #maybe 2020 federal election results
 
-#Mean family income
-#https://fred.stlouisfed.org/release/tables?eid=257197&rid=110
 
 
                     ###SHINY###
@@ -226,13 +255,13 @@ app_ui = ui.page_fluid(
         ui.column(6, 
                   ui.input_select(id='comp',
                                   label='Choose a complementary variable',
-                                  choices= ['A',
+                                  choices= ['Median Household Income',
                                             'B']),
                   align='center')
         ),
     ui.row(
         ui.column(6, ui.output_plot('CCDF_mapper'), align='center'),
-        ui.column(6)
+        ui.column(6, ui.output_plot('comp_mapper'), align='center')
         ),
     ui.row(
         ui.column(6, 
@@ -289,6 +318,16 @@ def server(input, output, session):
         replace_legend_items(ax.get_legend(), legend_dict)
         
         return ax
+    
+    def comp_mapper():
+        
+        fig, ax = plt.subplots(1, figsize=(5,5))
+        
+        if input.comp() == 'Median Household Income':
+            pass
+        else:
+            pass
+        
 
 app = App(app_ui, server)
 
