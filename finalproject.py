@@ -188,9 +188,8 @@ jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
                     ###NON-CCDF DATA CLEANING###
                     
                     
-'cat' + 'dog'                   
-
 #Mean family income
+#ex - https://fred.stlouisfed.org/series/MEHOINUSWAA646N
 
 states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
           "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", 
@@ -333,7 +332,7 @@ def server(input, output, session):
             
             from mpl_toolkits.axes_grid1 import make_axes_locatable
             divider = make_axes_locatable(ax)
-            cax = divider.append_axes('right', size='5%', pad=0.1)
+            cax = divider.append_axes('bottom', size='5%', pad=0.1)
     
             ax = income_geo.plot(column='med_inc', categorical=False, 
                                  cmap='RdBu_r', linewidth=.6, edgecolor='0.2',
@@ -350,6 +349,107 @@ def server(input, output, session):
         
 
 app = App(app_ui, server)
+
+### turning colorbar horizontal ###
+
+from matplotlib.pyplot import colorbar
+import matplotlib.colors as mcolors
+
+fig, ax = plt.subplots(1, figsize=(5,5))
+ax.axis('off')
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+divider = make_axes_locatable(ax)
+cax = divider.append_axes('bottom', size='10%', pad=0.1)
+
+ax = income_geo.plot(column='med_inc', categorical=False, 
+                     cmap='RdBu_r', linewidth=.6, edgecolor='0.2',
+                     ax=ax)
+
+ax.set_title('Median Household Income (2019)')
+
+range_min = income['med_inc'].min()
+range_max = income['med_inc'].max()
+cmap = plt.cm.ScalarMappable(
+    norm = mcolors.Normalize(range_min, range_max),
+    cmap = plt.get_cmap('RdBu_r'))
+cmap.set_array([])
+
+cb = colorbar(cmap, cax=cax, orientation="horizontal")
+
+#https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.colorbar.html
+#https://stackoverflow.com/questions/28801803/matplotlib-scalarmappable-why-need-to-set-array-if-norm-set
+#https://matplotlib.org/stable/tutorials/colors/colorbar_only.html
+
+######
+
+fig, ax = plt.subplots(1)
+fig.subplots_adjust(wspace=0.5)
+
+ax = income_geo.plot(column='med_inc', categorical=False, 
+                     cmap='RdBu_r', linewidth=.6, edgecolor='0.2',
+                     #legend=True, 
+                     #cax = cax,
+                     ax=ax)
+
+#ax2_divider = make_axes_locatable(ax)
+#cax2 = ax2_divider.append_axes("bottom", size="7%", pad="10%")
+
+import matplotlib.colors as mcolors
+
+range_min = income['med_inc'].min()
+range_max = income['med_inc'].max()
+cmap = plt.cm.ScalarMappable(
+    norm = mcolors.Normalize(range_min, range_max),
+    cmap = plt.get_cmap('RdBu_r'))
+
+cmap.set_array([])
+cb2 = colorbar(cmap, orientation="horizontal")
+
+plt.cm.ScalarMappable(cmap='RdBu_r').set_array([])
+
+
+#### creating a scalar mappable
+
+fig, ax  = plt.subplots(1,1)
+
+range_min = income['med_inc'].min()
+range_max = income['med_inc'].max()
+cmap = plt.cm.ScalarMappable(
+    norm = mcolors.Normalize(range_min, range_max),
+    cmap = plt.get_cmap('RdBu_r'))
+
+fig.colorbar(cmap, ax = ax)
+
+
+### COPIED FROM STACKOVERFLOW JUST TO RUN TO SEE HOW IT WORKS
+
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+x = np.linspace(0, 5, 100)
+N = 21
+cmap = plt.get_cmap('jet',N)
+
+fig = plt.figure(figsize=(8,6))
+ax1 = fig.add_axes([0.10,0.10,0.70,0.85])
+
+for i,n in enumerate(np.linspace(0,2,N)):
+    y = np.sin(x)*x**n
+    ax1.plot(x,y,c=cmap(i))
+
+plt.xlabel('x')
+plt.ylabel('y')
+
+norm = mpl.colors.Normalize(vmin=0,vmax=2)
+sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+sm.set_array([])
+plt.colorbar(sm, ticks=np.linspace(0,2,N), 
+             boundaries=np.arange(-0.05,2.1,.1))
+
+
+plt.show()
 
 
 
