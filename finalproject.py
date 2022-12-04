@@ -15,8 +15,9 @@ import pandas_datareader.data as web
 import datetime
 from shiny import App, render, ui
 
-#Load Urban Institute database of state child care policies
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
+
+#Load Urban Institute database of state child care policies
 CCDF = os.path.join(path, 'CCDF_databook.xlsx')
 CCDF_full = pd.ExcelFile(CCDF)
 
@@ -206,12 +207,15 @@ def code_maker(states):
 
 start = datetime.datetime(2019, 1, 1)
 end = datetime.datetime(2019, 1, 1)
+income = web.DataReader(code_maker(states), 'fred', start, end)
 
-inc_all = web.DataReader(code_maker(states), 'fred', start, end)
-inc_all.columns = states
-inc_all = inc_all.transpose()
-inc_all
+income.columns = states
+income = income.transpose()
+income = income.reset_index()
+income.columns = ['state_abbv', 'med_inc']
+income = income.astype({'state_abbv':'string'})
 
+income_geo = state_df.merge(income, on='state_abbv', how='outer')
 
 
 
@@ -324,7 +328,13 @@ def server(input, output, session):
         fig, ax = plt.subplots(1, figsize=(5,5))
         
         if input.comp() == 'Median Household Income':
-            pass
+            ax = inc_all.plot(column='Category', categorical=True, cmap='RdBu_r', 
+                                  linewidth=.6, edgecolor='0.2',
+                                  legend=True, 
+                                  legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
+                                  ax=ax)
+            ax.set_title('Minimum Work Hour Requirements')
+
         else:
             pass
         
