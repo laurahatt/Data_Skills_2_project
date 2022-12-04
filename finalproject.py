@@ -10,7 +10,6 @@ import os
 import pandas as pd
 import geopandas
 import matplotlib.pyplot as plt
-#from datetime import strftime
 pd.set_option('display.max_columns', None)
 from shiny import App, render, ui
 
@@ -23,6 +22,8 @@ CCDF_full = pd.ExcelFile(CCDF)
 state_shp = os.path.join(path, 'UI_states.shp')
 state_df  = geopandas.read_file(state_shp)
 state_df = state_df.astype({'state_fips':'int'})
+
+                            ###CCDF DATA CLEANING###
 
 #Select relevant policy categories within policy database
 
@@ -181,23 +182,26 @@ jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
 #whether a family with a CPS case is exempt from copayments
 
 
-#Other maps
+                    ###NON-CCDF DATA CLEANING###
 
 #Sentiment analysis of governor speeches
 #https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries
 #https://www.nasbo.org/resources/stateofthestates
 
-#Abortion access
+#Abortion access - table of gestational limits
+#https://www.kff.org/womens-health-policy/state-indicator/gestational-limit-abortions/?currentTimeframe=0&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D
+#could download or scrape
 
 #Cost of childcare
 
 #Measure of state progressiveness?
+#maybe 2020 federal election results
 
 #Mean family income
 #https://fred.stlouisfed.org/release/tables?eid=257197&rid=110
 
 
-
+                    ###SHINY###
 
 app_ui = ui.page_fluid(
     ui.row(
@@ -231,8 +235,11 @@ app_ui = ui.page_fluid(
         ui.column(6)
         ),
     ui.row(
-        ui.column(12, 
+        ui.column(6, 
                   ui.h6('Data from XX'), 
+                  align='center'),
+        ui.column(6, 
+                  ui.h6('Data from YY'), 
                   align='center')
         )
 )
