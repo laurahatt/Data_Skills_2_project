@@ -323,21 +323,34 @@ def server(input, output, session):
         
         return ax
     
+    @output
+    @render.plot
     def comp_mapper():
         
         fig, ax = plt.subplots(1, figsize=(5,5))
         
         if input.comp() == 'Median Household Income':
-            ax = inc_all.plot(column='Category', categorical=True, cmap='RdBu_r', 
-                                  linewidth=.6, edgecolor='0.2',
-                                  legend=True, 
-                                  legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
-                                  ax=ax)
-            ax.set_title('Minimum Work Hour Requirements')
-
+            
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes('right', size='5%', pad=0.1)
+    
+            ax = income_geo.plot(column='med_inc', categorical=False, 
+                                 cmap='RdBu_r', linewidth=.6, edgecolor='0.2',
+                                 legend=True, cax = cax,
+                                 ax=ax)
+        
+            ax.set_title('Median Household Income (2019)')
+        
         else:
             pass
         
+        ax.axis('off')
+        return ax
+        
 
 app = App(app_ui, server)
+
+
+
 
