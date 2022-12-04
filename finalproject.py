@@ -260,7 +260,7 @@ app_ui = ui.page_fluid(
         ui.column(6, 
                   ui.input_select(id='comp',
                                   label='Choose a complementary variable',
-                                  choices= ['Median Household Income',
+                                  choices= ['Median household income',
                                             'B']),
                   align='center')
         ),
@@ -330,7 +330,7 @@ def server(input, output, session):
         
         fig, ax = plt.subplots(1, figsize=(5,5))
         
-        if input.comp() == 'Median Household Income':
+        if input.comp() == 'Median household income':
             
             from mpl_toolkits.axes_grid1 import make_axes_locatable
             divider = make_axes_locatable(ax)
@@ -339,6 +339,7 @@ def server(input, output, session):
             ax = income_geo.plot(column='med_inc', categorical=False, 
                                  cmap='RdBu', linewidth=.6, edgecolor='0.2',
                                  ax=ax)
+            ax.set_title('Median Household Income (2019)')
             
             def cmap_maker(column, colors):
                 range_min = income[column].min()
@@ -350,8 +351,6 @@ def server(input, output, session):
                 return(cmap)
             
             colorbar(cmap_maker('med_inc', 'RdBu_r'), cax=cax, orientation="horizontal")
-            
-            ax.set_title('Median Household Income (2019)')
         
         else:
             pass
