@@ -291,7 +291,9 @@ def server(input, output, session):
             ax = minhours_geo.plot(column='Category', categorical=True, cmap='RdBu_r', 
                                   linewidth=.6, edgecolor='0.2',
                                   legend=True, 
-                                  legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
+                                  legend_kwds={'bbox_to_anchor':(1, 0), 
+                                               'frameon':False,
+                                               'ncol':2}, 
                                   ax=ax)
             ax.set_title('Minimum Work Hour Requirements')
             legend_dict = {0: 'No minimum',
@@ -304,10 +306,12 @@ def server(input, output, session):
              ax = jobsearch_geo.plot(column='Category', categorical=True, cmap='RdBu', 
                                linewidth=.6, edgecolor='0.2',
                                legend=True, 
-                               legend_kwds={'bbox_to_anchor':(0.7, 0), 'frameon':False}, 
+                               legend_kwds={'bbox_to_anchor':(0.8, 0), 
+                                            'frameon':False,
+                                            'ncol':2}, 
                                ax=ax)
              ax.set_title('Duration of eligibility while unemployed but searching for work, \n upon initial application')
-             legend_dict = {0: 'Not eligible while job searching',
+             legend_dict = {0: 'Not eligible',
                             1: 'One month',
                             2: 'Three months',
                             3: 'Six months',
