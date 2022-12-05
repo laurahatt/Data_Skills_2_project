@@ -15,6 +15,8 @@ import pandas_datareader.data as web
 import datetime
 from matplotlib.pyplot import colorbar
 import matplotlib.colors as mcolors
+from bs4 import BeautifulSoup
+import requests
 from shiny import App, render, ui
 
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
@@ -219,14 +221,63 @@ income = income.astype({'state_abbv':'string'})
 income_geo = state_df.merge(income, on='state_abbv', how='outer')
 
 
+#Abortion access - table of gestational limits
+#https://www.kff.org/womens-health-policy/state-indicator/gestational-limit-abortions/?currentTimeframe=0&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D
+
+#url = 'https://www.kff.org/womens-health-policy/state-indicator/gestational-limit-abortions/?currentTimeframe=0&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D'
+
+url = 'https://www.guttmacher.org/state-policy/explore/state-policies-later-abortions'
+response = requests.get(url)
+soup = BeautifulSoup(response.text, 'lxml')
+
+soup.text[0:1000]
+table = soup.find('table')
+
+columns = table.find_all('tr')[1]
+columns.find_all('p')[0].text
+
+colnames = [tr.text for tr in table.find_all('tr')[1].find_all('p')]
+
+list(range(1,7,1))
+
+def table_maker(soup):
+    
+    table = soup.find('table')
+    #num_rows = list(range(3, len(table.find_all('tr')), 1))
+    num_rows = [3, 4, 5]
+    
+    headers1 = [tr.text for tr in table.find_all('tr')[1].find_all('p')]
+    headers2 = [tr.text for tr in table.find_all('tr')[2].find_all('p')]
+    raw_df = pd.DataFrame(columns = headers1[:-1] + headers2)
+    #raw_df.loc[0] = headers1 + headers2
+    
+    
+    for row in num_rows:
+        new_row = [val.text for val in table.find_all('tr')[row].find_all('td')]
+        raw_df.loc[len(raw_df)] = new_row
+    
+    return(raw_df)
+    
+table_maker(soup)  
+    
+raw_df = pd.DataFrame(1,5)
+raw_df
+
+
+headers1 = [tr.text for tr in table.find_all('tr')[1].find_all('p')] 
+headers1[:-1]
+
+len([val.text for val in table.find_all('tr')[4].find_all('td')])
+
+
+row2 = [val.text for val in table.find_all('tr')[4].find_all('p')]
+row2
 
 #Sentiment analysis of governor speeches
 #https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries
 #https://www.nasbo.org/resources/stateofthestates
 
-#Abortion access - table of gestational limits
-#https://www.kff.org/womens-health-policy/state-indicator/gestational-limit-abortions/?currentTimeframe=0&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D
-#could download or scrape
+
 
 #Cost of childcare
 
@@ -310,7 +361,7 @@ def server(input, output, session):
                                             'frameon':False,
                                             'ncol':2}, 
                                ax=ax)
-             ax.set_title('Duration of eligibility while unemployed but searching for work, \n upon initial application')
+             ax.set_title('Duration of Eligibility While Unemployed, \n (At Initial Application)')
              legend_dict = {0: 'Not eligible',
                             1: 'One month',
                             2: 'Three months',
@@ -343,7 +394,7 @@ def server(input, output, session):
             ax = income_geo.plot(column='med_inc', categorical=False, 
                                  cmap='RdBu', linewidth=.6, edgecolor='0.2',
                                  ax=ax)
-            ax.set_title('Median Household Income (2019)')
+            ax.set_title('Median Household Income')
             
             def cmap_maker(column, colors):
                 range_min = income[column].min()
@@ -364,6 +415,8 @@ def server(input, output, session):
         
 
 app = App(app_ui, server)
+
+
 
 
 
