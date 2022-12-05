@@ -297,16 +297,13 @@ def table_cleaner(abo_df_raw):
     
     abo_df = abo_df[abo_df['State'] != '\xa0']
     abo_df = abo_df[['Statutory limit', 'State']]
+    abo_df.columns = ['stat_limit', 'state_name']
     
     return(abo_df)
 
 abo_df = table_cleaner(table_maker(abo_soup))
 
-
-abo_df
-
-
-
+abo_geo = state_df.merge(abo_df, on='state_name', how='outer')
 
 
 #https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
