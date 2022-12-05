@@ -296,12 +296,24 @@ def table_cleaner(abo_df_raw):
             pass
     
     abo_df = abo_df[abo_df['State'] != '\xa0']
-    abo_df = abo_df[['Statutory limit', 'State']]
-    abo_df.columns = ['stat_limit', 'state_name']
     
     return(abo_df)
 
 abo_df = table_cleaner(table_maker(abo_soup))
+
+
+def inactive_law_remover(abo_df):
+    abo_df['Life'] = abo_df['Life'].str.strip(' ')
+    abo_df = abo_df[abo_df['Life'] != '▼'] #law permanently enjoined
+    abo_df = abo_df[abo_df['Life'] != '▽'] #law temporarily enjoined
+    abo_df = abo_df.reset_index()
+    return(abo_df)
+
+abo_df = inactive_law_remover(abo_df)
+
+
+abo_df = abo_df[['Statutory limit', 'State']]
+abo_df.columns = ['stat_limit', 'state_name']
 
 abo_geo = state_df.merge(abo_df, on='state_name', how='outer')
 
