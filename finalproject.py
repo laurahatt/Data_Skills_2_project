@@ -326,9 +326,33 @@ def nan_replacer(row):
      else:
          return(row)
  
-abo_geo['stat_limit'] = abo_geo['Statutory limit'].apply(nan_replacer)
+abo_geo['stat_limit'] = abo_geo['Statutory limit'].apply(nan_replacer).apply(lambda x: x.replace('\xa0', ''))
 
 
+def limit_classifier(row):
+    """Translate statutory limits into ordinal categorical variable"""
+    if row == 'No statutory limit':
+        return(0) 
+    elif row == 'Third trimester':
+        return(1) 
+    elif row == 'Viability':
+        return(2) 
+    elif row == '24 weeks LMP':
+        return(3)
+    elif row == '22 weeks LMP':
+        return(4)
+    elif row == '20 weeks LMP':
+        return(5)
+    elif row == '18 weeks LMP':
+        return(6)
+    elif row == '15 weeks LMP':
+        return(7)
+    elif row == '6 weeks LMP':
+        return(8)
+    else: 
+        return(9) #Conception
+
+abo_geo['stat_limit_cat'] = abo_geo['stat_limit'].apply(limit_classifier)
 
 #https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
 
@@ -371,7 +395,7 @@ app_ui = ui.page_fluid(
                   ui.input_select(id='comp',
                                   label='Choose a complementary variable',
                                   choices= ['Median household income',
-                                            'B']),
+                                            'Abortion restrictions']),
                   align='center')
         ),
     ui.row(
@@ -467,6 +491,34 @@ def server(input, output, session):
             colorbar(cmap_maker('med_inc', 'RdBu_r'), cax=cax, orientation="horizontal")
         
         else:
+            
+            ax = abo_geo.plot(column='stat_limit_cat', categorical=True, cmap='RdBu_r', 
+                                  linewidth=.6, edgecolor='0.2',
+                                  legend=True, 
+                                  legend_kwds={'bbox_to_anchor':(1, 0), 
+                                               'frameon':False,
+                                               'ncol':3}, 
+                                  ax=ax)
+            ax.set_title('State statutory limits on abortion')
+            
+            legend_dict = {0: 'No statutory limit',
+                           1: 'Third trimester',
+                           2: 'Viability',
+                           3: '24 weeks LMP',
+                           4: '22 weeks LMP',
+                           5: '20 weeks LMP',
+                           6: '18 weeks LMP',
+                           7: '15 weeks LMP',
+                           8: '6 weeks LMP',
+                           9: 'Conception'}
+            
+            def replace_legend_items(legend, legend_dict):
+                for txt in legend.texts:
+                    for k,v in legend_dict.items():
+                        if txt.get_text() == str(k):
+                            txt.set_text(v)
+            replace_legend_items(ax.get_legend(), legend_dict)
+            
             pass
         
         ax.axis('off')
@@ -474,6 +526,7 @@ def server(input, output, session):
         
 
 app = App(app_ui, server)
+
 
 
 
