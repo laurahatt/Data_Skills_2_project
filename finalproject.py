@@ -233,45 +233,26 @@ soup = BeautifulSoup(response.text, 'lxml')
 soup.text[0:1000]
 table = soup.find('table')
 
-columns = table.find_all('tr')[1]
-columns.find_all('p')[0].text
-
-colnames = [tr.text for tr in table.find_all('tr')[1].find_all('p')]
-
-list(range(1,7,1))
-
 def table_maker(soup):
     
     table = soup.find('table')
-    #num_rows = list(range(3, len(table.find_all('tr')), 1))
-    num_rows = [3, 4, 5]
     
     headers1 = [tr.text for tr in table.find_all('tr')[1].find_all('p')]
     headers2 = [tr.text for tr in table.find_all('tr')[2].find_all('p')]
+    headers2 = [tr.replace('\n', ' ').replace('\t', '') for tr in headers2]
     raw_df = pd.DataFrame(columns = headers1[:-1] + headers2)
-    #raw_df.loc[0] = headers1 + headers2
     
-    
+    num_rows = list(range(3, len(table.find_all('tr')), 1))
     for row in num_rows:
         new_row = [val.text for val in table.find_all('tr')[row].find_all('td')]
         raw_df.loc[len(raw_df)] = new_row
+    
+    raw_df = raw_df.applymap(lambda cell: cell.replace('\n', ''))
     
     return(raw_df)
     
 table_maker(soup)  
     
-raw_df = pd.DataFrame(1,5)
-raw_df
-
-
-headers1 = [tr.text for tr in table.find_all('tr')[1].find_all('p')] 
-headers1[:-1]
-
-len([val.text for val in table.find_all('tr')[4].find_all('td')])
-
-
-row2 = [val.text for val in table.find_all('tr')[4].find_all('p')]
-row2
 
 #Sentiment analysis of governor speeches
 #https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries
