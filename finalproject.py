@@ -243,7 +243,6 @@ def table_maker(soup):
     
     return(abo_df_raw)
     
-table_maker(abo_soup)  
  
 def table_cleaner(abo_df_raw):
     
@@ -262,46 +261,53 @@ def table_cleaner(abo_df_raw):
     
     for row in list(range(0, len(abo_df))):
         
-        if row < index_finder(2):
+        if row < index_finder(2): #Conception
             abo_df.loc[(abo_df.index < index_finder(2)), 'Statutory limit'] = limits[0]
         
-        elif (row < index_finder(3)):
+        elif row < index_finder(3): #6 weeks LMP
             abo_df['Statutory limit'][row] = limits[2]
+            #tb1.loc[12:18, 'Statutory limit'] = 'placeholder'
             
-        elif (row >= index_finder(5) and row < index_finder(6)):
+        elif row == index_finder(3): #8 weeks LMP
+            abo_df['Statutory limit'][row] = limits[3]
+            
+        elif row == index_finder(4): #12 weeks LMP
+            abo_df['Statutory limit'][row] = limits[4]
+        
+        elif row < index_finder(6): #15 weeks LMP
             abo_df['Statutory limit'][row] = limits[5]
         
-        elif (row >= index_finder(6) and row < index_finder(7)):
+        elif row < index_finder(7): #18 weeks LMP
             abo_df['Statutory limit'][row] = limits[6]
         
-        elif (row >= index_finder(7) and row < index_finder(8)):
+        elif row < index_finder(8): #20 weeks LMP
             abo_df['Statutory limit'][row] = limits[7]
             
-        elif (row >= index_finder(8) and row < index_finder(9)):
+        elif row < index_finder(9): #22 weeks LMP
             abo_df['Statutory limit'][row] = limits[8]
             
-        elif (row >= index_finder(9) and row < index_finder(10)):
+        elif row < index_finder(10): #24 weeks LMP
             abo_df['Statutory limit'][row] = limits[9]
         
-        elif (row >= index_finder(10) and row < index_finder(11)):
+        elif row < index_finder(11): #Viability
             abo_df['Statutory limit'][row] = limits[10]
         
-        else:
+        else: #Third trimester
             pass
     
     abo_df = abo_df[abo_df['State'] != '\xa0']
+    abo_df = abo_df[['Statutory limit', 'State']]
     
     return(abo_df)
 
-table_cleaner(table_maker(abo_soup))
-
-tb1.loc[tb1.index < 5, 'Statutory limit'] = 'placeholder'
-tb1
-
-tb1[tb1.iloc[1:4]]
+abo_df = table_cleaner(table_maker(abo_soup))
 
 
-tb1.index < 4
+abo_df
+
+
+
+
 
 #https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
 
