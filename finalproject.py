@@ -222,37 +222,116 @@ income_geo = state_df.merge(income, on='state_abbv', how='outer')
 
 
 #Abortion access - table of gestational limits
-#https://www.kff.org/womens-health-policy/state-indicator/gestational-limit-abortions/?currentTimeframe=0&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D
-
-#url = 'https://www.kff.org/womens-health-policy/state-indicator/gestational-limit-abortions/?currentTimeframe=0&sortModel=%7B%22colId%22:%22Location%22,%22sort%22:%22asc%22%7D'
 
 url = 'https://www.guttmacher.org/state-policy/explore/state-policies-later-abortions'
 response = requests.get(url)
-soup = BeautifulSoup(response.text, 'lxml')
-
-soup.text[0:1000]
-table = soup.find('table')
+abo_soup = BeautifulSoup(response.text, 'lxml')
 
 def table_maker(soup):
     
-    table = soup.find('table')
+    abo_table = abo_soup.find('table')
     
-    headers1 = [tr.text for tr in table.find_all('tr')[1].find_all('p')]
-    headers2 = [tr.text for tr in table.find_all('tr')[2].find_all('p')]
+    headers1 = [tr.text for tr in abo_table.find_all('tr')[1].find_all('p')]
+    headers2 = [tr.text for tr in abo_table.find_all('tr')[2].find_all('p')]
     headers2 = [tr.replace('\n', ' ').replace('\t', '') for tr in headers2]
-    raw_df = pd.DataFrame(columns = headers1[:-1] + headers2)
+    abo_df_raw = pd.DataFrame(columns = headers1[:-1] + headers2)
     
-    num_rows = list(range(3, len(table.find_all('tr')), 1))
+    num_rows = list(range(3, len(abo_table.find_all('tr')), 1))
     for row in num_rows:
-        new_row = [val.text for val in table.find_all('tr')[row].find_all('td')]
-        raw_df.loc[len(raw_df)] = new_row
+        new_row = [val.text for val in abo_table.find_all('tr')[row].find_all('td')]
+        abo_df_raw.loc[len(abo_df_raw)] = new_row
     
-    raw_df = raw_df.applymap(lambda cell: cell.replace('\n', ''))
+    return(abo_df_raw)
     
-    return(raw_df)
+table_maker(abo_soup)  
+ 
+def table_cleaner(abo_df_raw):
     
-table_maker(soup)  
+    """Clean up extraneous HTML and summary rows"""
+    abo_df = abo_df_raw.applymap(lambda cell: cell.replace('\n', ''))
+    abo_df = abo_df[abo_df['Statutory limit'] != 'TOTAL IN EFFECT']
+    abo_df = abo_df.reset_index()
+   
+    """Fill in Statutory Limit where it is missing"""
+    limits = abo_df['Statutory limit'].unique()
     
+    def index_finder(limit_number):
+        """Find the index of the first instance of the nth statutory limit"""
+        limit_index  = abo_df[abo_df['Statutory limit'] == limits[limit_number]].index
+        return(limit_index[0])
+    
+    for row in list(range(0, len(abo_df))):
+        
+        if row < index_finder(2):
+            abo_df['Statutory limit'][row] = limits[0]
+        
+        elif (row >= index_finder(2) and row < index_finder(3)):
+            abo_df['Statutory limit'][row] = limits[2]
+            
+        elif (row >= index_finder(5) and row < index_finder(6)):
+            abo_df['Statutory limit'][row] = limits[5]
+        
+        elif (row >= index_finder(6) and row < index_finder(7)):
+            abo_df['Statutory limit'][row] = limits[6]
+        
+        elif (row >= index_finder(7) and row < index_finder(8)):
+            abo_df['Statutory limit'][row] = limits[7]
+            
+        elif (row >= index_finder(8) and row < index_finder(9)):
+            abo_df['Statutory limit'][row] = limits[8]
+            
+        elif (row >= index_finder(9) and row < index_finder(10)):
+            abo_df['Statutory limit'][row] = limits[9]
+        
+        elif (row >= index_finder(10) and row < index_finder(11)):
+            abo_df['Statutory limit'][row] = limits[10]
+        
+        else:
+            pass
+    
+    abo_df = abo_df[abo_df['State'] != '\xa0']
+    
+    return(abo_df)
+
+
+table_cleaner(table_maker(abo_soup))
+
+my_table = table_cleaner(table_maker(abo_soup))
+my_table = my_table[my_table['Statutory limit'] != 'TOTAL IN EFFECT']
+
+limits = my_table['Statutory limit'].unique()
+limits
+len(limits)
+limits[8]
+
+def index_finder(limit_number):
+    """Find the index of the first instance of a statutory limit"""
+    limit_index  = my_table[my_table['Statutory limit'] == limits[limit_number]].index
+    return(limit_index[0])
+
+index_finder(9)
+
+for row in list(range(0, len(my_table))):
+    
+    if row < index_finder(0):
+        my_table['Statutory limit'][row] = limits[0]
+    
+    elif row > index_finder(2):
+        my_table['Statutory limit'][row] = limits[2]
+    
+    else:
+        pass
+
+my_table
+
+my_table[my_table['Statutory limit'] != 'TOTAL IN EFFECT']
+
+my_table['Statutory limit'].unique()
+my_table[my_table['Statutory limit'] == '8 weeks LMP'].index
+my_table[my_table.index <= 20]
+
+
+
 
 #Sentiment analysis of governor speeches
 #https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries
