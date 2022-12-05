@@ -263,9 +263,9 @@ def table_cleaner(abo_df_raw):
     for row in list(range(0, len(abo_df))):
         
         if row < index_finder(2):
-            abo_df['Statutory limit'][row] = limits[0]
+            abo_df.loc[(abo_df.index < index_finder(2)), 'Statutory limit'] = limits[0]
         
-        elif (row >= index_finder(2) and row < index_finder(3)):
+        elif (row < index_finder(3)):
             abo_df['Statutory limit'][row] = limits[2]
             
         elif (row >= index_finder(5) and row < index_finder(6)):
@@ -293,45 +293,17 @@ def table_cleaner(abo_df_raw):
     
     return(abo_df)
 
-
 table_cleaner(table_maker(abo_soup))
 
-my_table = table_cleaner(table_maker(abo_soup))
-my_table = my_table[my_table['Statutory limit'] != 'TOTAL IN EFFECT']
+tb1.loc[tb1.index < 5, 'Statutory limit'] = 'placeholder'
+tb1
 
-limits = my_table['Statutory limit'].unique()
-limits
-len(limits)
-limits[8]
-
-def index_finder(limit_number):
-    """Find the index of the first instance of a statutory limit"""
-    limit_index  = my_table[my_table['Statutory limit'] == limits[limit_number]].index
-    return(limit_index[0])
-
-index_finder(9)
-
-for row in list(range(0, len(my_table))):
-    
-    if row < index_finder(0):
-        my_table['Statutory limit'][row] = limits[0]
-    
-    elif row > index_finder(2):
-        my_table['Statutory limit'][row] = limits[2]
-    
-    else:
-        pass
-
-my_table
-
-my_table[my_table['Statutory limit'] != 'TOTAL IN EFFECT']
-
-my_table['Statutory limit'].unique()
-my_table[my_table['Statutory limit'] == '8 weeks LMP'].index
-my_table[my_table.index <= 20]
+tb1[tb1.iloc[1:4]]
 
 
+tb1.index < 4
 
+#https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
 
 #Sentiment analysis of governor speeches
 #https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries
