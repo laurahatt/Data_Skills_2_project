@@ -229,6 +229,7 @@ response = requests.get(url)
 abo_soup = BeautifulSoup(response.text, 'lxml')
 
 def table_maker(soup):
+    """Convert soup object into table of unparsed text"""
     
     abo_table = abo_soup.find('table')
     
@@ -246,13 +247,12 @@ def table_maker(soup):
     
  
 def table_cleaner(abo_df_raw):
+    """Remove extraneous content and fill in missing limits"""
     
-    """Clean up extraneous HTML and summary rows"""
     abo_df = abo_df_raw.applymap(lambda cell: cell.replace('\n', ''))
     abo_df = abo_df[abo_df['Statutory limit'] != 'TOTAL IN EFFECT']
     abo_df = abo_df.reset_index()
-   
-    """Fill in Statutory Limit where it is missing"""
+
     limits = abo_df['Statutory limit'].unique()
     
     def index_finder(limit_number):
@@ -261,38 +261,27 @@ def table_cleaner(abo_df_raw):
         return(limit_index[0])
     
     for row in list(range(0, len(abo_df))):
-        
         if row < index_finder(2): #Conception
             abo_df.loc[(abo_df.index < index_finder(2)), 'Statutory limit'] = limits[0]
-        
         elif row < index_finder(3): #6 weeks LMP
             abo_df['Statutory limit'][row] = limits[2]
-            #tb1.loc[12:18, 'Statutory limit'] = 'placeholder'
-            
+            #tb1.loc[12:18, 'Statutory limit'] = 'placeholder'  
         elif row == index_finder(3): #8 weeks LMP
             abo_df['Statutory limit'][row] = limits[3]
-            
         elif row == index_finder(4): #12 weeks LMP
             abo_df['Statutory limit'][row] = limits[4]
-        
         elif row < index_finder(6): #15 weeks LMP
             abo_df['Statutory limit'][row] = limits[5]
-        
         elif row < index_finder(7): #18 weeks LMP
             abo_df['Statutory limit'][row] = limits[6]
-        
         elif row < index_finder(8): #20 weeks LMP
-            abo_df['Statutory limit'][row] = limits[7]
-            
+            abo_df['Statutory limit'][row] = limits[7]  
         elif row < index_finder(9): #22 weeks LMP
-            abo_df['Statutory limit'][row] = limits[8]
-            
+            abo_df['Statutory limit'][row] = limits[8]  
         elif row < index_finder(10): #24 weeks LMP
             abo_df['Statutory limit'][row] = limits[9]
-        
         elif row < index_finder(11): #Viability
             abo_df['Statutory limit'][row] = limits[10]
-        
         else: #Third trimester
             pass
     
@@ -301,6 +290,7 @@ def table_cleaner(abo_df_raw):
     return(abo_df)
 
 def inactive_law_remover(abo_df):
+    """Remove rows correponding to laws not currently active"""
     abo_df['Life'] = abo_df['Life'].str.strip(' ')
     abo_df = abo_df[abo_df['Life'] != '▼'] #law permanently enjoined
     abo_df = abo_df[abo_df['Life'] != '▽'] #law temporarily enjoined
@@ -308,51 +298,53 @@ def inactive_law_remover(abo_df):
     return(abo_df)
 
 def state_name_cleaner(row):
+    """Remove punctuation and special characters from state names"""
     new_row = row.translate(str.maketrans('', '', string.punctuation))
     new_row = new_row.replace('‡', '').replace('†', '').replace('Ɵ', '').replace('β', '')
     new_row = new_row.rstrip()
     return(new_row)
  
-abo_df = table_cleaner(table_maker(abo_soup))
-abo_df = inactive_law_remover(abo_df)
-abo_df['state_name'] = abo_df['State'].apply(state_name_cleaner)
-abo_df = abo_df[['Statutory limit', 'state_name']]
+def limit_cleaner(row):
+    """Create ordered categorical variables, for plot legend"""
+    
+    if pd.isna(row): #States with no limit are not included in the original df
+        return(0) #'No statutory limit'
+    
+    else:
+        row = row.replace('\xa0', '')
+        if row == 'Third trimester':
+            return(1) 
+        elif row == 'Viability':
+            return(2) 
+        elif row == '24 weeks LMP':
+            return(3)
+        elif row == '22 weeks LMP':
+            return(4)
+        elif row == '20 weeks LMP':
+            return(5)
+        elif row == '18 weeks LMP':
+            return(6)
+        elif row == '15 weeks LMP':
+            return(7)
+        elif row == '6 weeks LMP':
+            return(8)
+        elif row == 'Conception':
+            return(9)
+        else: 
+            return('ERROR')
 
-abo_geo = state_df.merge(abo_df, on='state_name', how='outer')
+def abo_geo_assembler(abo_soup, state_df):
+    """Parse, clean, and add geometry to abortion df"""
+    abo_df = table_maker(abo_soup)
+    abo_df = table_cleaner(abo_df)
+    abo_df = inactive_law_remover(abo_df)
+    abo_df['state_name'] = abo_df['State'].apply(state_name_cleaner)
+    #abo_df = abo_df[['Statutory limit', 'state_name']]
+    abo_geo = state_df.merge(abo_df, on='state_name', how='outer')
+    abo_geo['stat_limit'] = abo_geo['Statutory limit'].apply(limit_cleaner)
+    return(abo_geo)
 
-def nan_replacer(row):
-     if pd.isna(row):
-         return('No statutory limit')
-     else:
-         return(row)
- 
-abo_geo['stat_limit'] = abo_geo['Statutory limit'].apply(nan_replacer).apply(lambda x: x.replace('\xa0', ''))
-
-
-def limit_classifier(row):
-    """Translate statutory limits into ordinal categorical variable"""
-    if row == 'No statutory limit':
-        return(0) 
-    elif row == 'Third trimester':
-        return(1) 
-    elif row == 'Viability':
-        return(2) 
-    elif row == '24 weeks LMP':
-        return(3)
-    elif row == '22 weeks LMP':
-        return(4)
-    elif row == '20 weeks LMP':
-        return(5)
-    elif row == '18 weeks LMP':
-        return(6)
-    elif row == '15 weeks LMP':
-        return(7)
-    elif row == '6 weeks LMP':
-        return(8)
-    else: 
-        return(9) #Conception
-
-abo_geo['stat_limit_cat'] = abo_geo['stat_limit'].apply(limit_classifier)
+abo_geo = abo_geo_assembler(abo_soup, state_df)
 
 #https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
 
@@ -492,7 +484,7 @@ def server(input, output, session):
         
         else:
             
-            ax = abo_geo.plot(column='stat_limit_cat', categorical=True, cmap='RdBu_r', 
+            ax = abo_geo.plot(column='stat_limit', categorical=True, cmap='RdBu_r', 
                                   linewidth=.6, edgecolor='0.2',
                                   legend=True, 
                                   legend_kwds={'bbox_to_anchor':(1, 0), 
