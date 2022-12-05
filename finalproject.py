@@ -17,6 +17,7 @@ from matplotlib.pyplot import colorbar
 import matplotlib.colors as mcolors
 from bs4 import BeautifulSoup
 import requests
+import string
 from shiny import App, render, ui
 
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
@@ -299,9 +300,6 @@ def table_cleaner(abo_df_raw):
     
     return(abo_df)
 
-abo_df = table_cleaner(table_maker(abo_soup))
-
-
 def inactive_law_remover(abo_df):
     abo_df['Life'] = abo_df['Life'].str.strip(' ')
     abo_df = abo_df[abo_df['Life'] != '▼'] #law permanently enjoined
@@ -309,13 +307,27 @@ def inactive_law_remover(abo_df):
     abo_df = abo_df.reset_index()
     return(abo_df)
 
+def state_name_cleaner(row):
+    new_row = row.translate(str.maketrans('', '', string.punctuation))
+    new_row = new_row.replace('‡', '').replace('†', '').replace('Ɵ', '').replace('β', '')
+    new_row = new_row.rstrip()
+    return(new_row)
+ 
+abo_df = table_cleaner(table_maker(abo_soup))
 abo_df = inactive_law_remover(abo_df)
-
-
-abo_df = abo_df[['Statutory limit', 'State']]
-abo_df.columns = ['stat_limit', 'state_name']
+abo_df['state_name'] = abo_df['State'].apply(state_name_cleaner)
+abo_df = abo_df[['Statutory limit', 'state_name']]
 
 abo_geo = state_df.merge(abo_df, on='state_name', how='outer')
+
+def nan_replacer(row):
+     if pd.isna(row):
+         return('No statutory limit')
+     else:
+         return(row)
+ 
+abo_geo['stat_limit'] = abo_geo['Statutory limit'].apply(nan_replacer)
+
 
 
 #https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
