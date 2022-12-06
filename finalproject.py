@@ -104,13 +104,6 @@ def minhours_assembler(CCDF_full, sheet_name, state_df):
     return(minhours_geo)
     
 minhours_geo = minhours_assembler(CCDF_full, 'EligCriteria', state_df)
-  
-#minhours = record_selector('EligCriteria')[['state_fips','EligMinWorkHours','EligMinHoursAmount']]
-#minhours['Number_hours'] = minhours.apply (lambda row: min_hours_translator(row), axis=1)
-#minhours['Category'] = minhours.apply (lambda row: min_hours_classifier(row), axis=1)
-#minhours = minhours[['state_fips', 'Number_hours', 'Category']]
-#minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
-
 
 
 #Job search as eligible activity
@@ -166,20 +159,23 @@ def jobsearch_day_generator(row):
     else:
         return('Problem')
 
-jobsearch = record_selector(CCDF_full, 'EligCriteria')[['state_fips', 
-                                             'EligApproveActivityJobSearch',
-                                             'EligMaxTimeJobSearch', 
-                                             'EligMaxTimeJobSearchUnit',
-                                             'EligMaxTimeJobSearchTimeFrame']]
+def jobsearch_assembler(CCDF_full, sheet_name, state_df):
+    jobsearch = record_selector(CCDF_full, 'EligCriteria')[['state_fips', 
+                                                 'EligApproveActivityJobSearch',
+                                                 'EligMaxTimeJobSearch', 
+                                                 'EligMaxTimeJobSearchUnit',
+                                                 'EligMaxTimeJobSearchTimeFrame']]
+    jobsearch['Search_time'] = jobsearch.apply (lambda row: jobsearch_translator(row), axis=1)
+    jobsearch = jobsearch.astype({'Search_time':'int'})
+    jobsearch['Day_multiplier'] = jobsearch.apply (lambda row: jobsearch_day_multiplier(row), axis=1)    
+    jobsearch['Days'] = jobsearch.apply (lambda row: jobsearch_day_generator(row), axis=1)
+    jobsearch = jobsearch[['state_fips', 'Search_time', 'Day_multiplier', 'Days']]
+    jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
+    return(jobsearch_geo)
 
 
-jobsearch['Search_time'] = jobsearch.apply (lambda row: jobsearch_translator(row), axis=1)
-jobsearch = jobsearch.astype({'Search_time':'int'})
-jobsearch['Day_multiplier'] = jobsearch.apply (lambda row: jobsearch_day_multiplier(row), axis=1)    
-jobsearch['Days'] = jobsearch.apply (lambda row: jobsearch_day_generator(row), axis=1)
-jobsearch = jobsearch[['state_fips', 'Search_time', 'Day_multiplier', 'Days']]
+jobsearch_geo = jobsearch_assembler(CCDF_full, 'EligCriteria', state_df)
 
-jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
 
 #Other CCDF variables, for future development
 #Income eligibility thresholds for family of 2
@@ -215,7 +211,7 @@ def static_plot_maker_minhours():
     replace_legend_items(ax.get_legend(), legend_dict)
 
     #fig.savefig('images/minhours.png', bbox_inches="tight")
-    plt.show()
+    #plt.show()
     
 def static_plot_maker_jobsearch():
     """Save and display chloropleth of job search eligibility requirements"""
@@ -244,7 +240,7 @@ def static_plot_maker_jobsearch():
     colorbar(cmap_maker(jobsearch_geo, 'Days', 'RdBu'), cax=cax, orientation="horizontal")
 
     #fig.savefig('images/jobsearch.png', bbox_inches="tight")
-    plt.show()
+    #plt.show()
 
     
 static_plot_maker_minhours()
