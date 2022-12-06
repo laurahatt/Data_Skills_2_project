@@ -36,8 +36,6 @@ state_df = state_df.astype({'state_fips':'int'})
 
                             ###CCDF DATA CLEANING###
 
-#Select relevant policy categories within policy database
-
 def record_selector(sheet_name): 
     
     """Select and clean relevant sheet of CCDF policy database"""
@@ -174,6 +172,7 @@ jobsearch = jobsearch[['state_fips', 'Search_time', 'Day_multiplier', 'Days']]
 
 jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
 
+#Other CCDF variables, for future development
 #Income eligibility thresholds for family of 2
 #whether a family with a CPS case is exempt from copayments
 
@@ -199,6 +198,7 @@ def code_maker(states):
 
 start = datetime.datetime(2019, 1, 1)
 end = datetime.datetime(2019, 1, 1)
+
 income = web.DataReader(code_maker(states), 'fred', start, end)
 
 income.columns = states
@@ -598,8 +598,67 @@ def server(input, output, session):
         
 app = App(app_ui, server)
 
+                    ###STATIC PLOTS###
 
+def static_plot_maker_minhours():
+    """Save and display chloropleth of minimum hours requirements"""
+    
+    fig, ax = plt.subplots(1, figsize=(5,5))
+    
+    ax = minhours_geo.plot(ax=ax, column='Category', categorical=True,  
+                          cmap='RdBu_r',linewidth=.6, edgecolor='0.2',
+                          legend=True, legend_kwds={'bbox_to_anchor':(1.1, 0),
+                                                    'frameon':False,
+                                                    'ncol':2}
+                          )
+    ax.set_title('Minimum Work Hour Requirements')
+    ax.axis('off')
+    
+    legend_dict = {0: 'No minimum',
+                   1: '15 to 19 hours per week',
+                   2: '20 to 24 hours per week',
+                   3: '25 to 29 hours per week',
+                   4: '30 hours per week',
+                   5: 'Other'}
+    def replace_legend_items(legend, legend_dict):
+        for txt in legend.texts:
+            for k,v in legend_dict.items():
+                if txt.get_text() == str(k):
+                    txt.set_text(v)
+    replace_legend_items(ax.get_legend(), legend_dict)
 
+    fig.savefig('images/minhours.png', bbox_inches="tight")
+    plt.show()
+    
+def static_plot_maker_jobsearch():
+    """Save and display chloropleth of job search eligibility requirements"""
+    
+    fig, ax = plt.subplots(1, figsize=(5,5))
+    
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('bottom', size='10%', pad=0.1)
 
+    ax = jobsearch_geo.plot(column='Days', categorical=False, 
+                         cmap='RdBu', linewidth=.6, edgecolor='0.2',
+                         ax=ax)
+    ax.set_title('Days Eligible While Unemployed, \n (At Initial Application)')
+    ax.axis('off')
+    
+    def cmap_maker(df, column, colors):
+        range_min = df[column].min()
+        range_max = df[column].max()
+        cmap = plt.cm.ScalarMappable(
+            norm = mcolors.Normalize(range_min, range_max),
+            cmap = plt.get_cmap(colors))
+        cmap.set_array([])
+        return(cmap)
+    
+    colorbar(cmap_maker(jobsearch_geo, 'Days', 'RdBu'), cax=cax, orientation="horizontal")
 
+    fig.savefig('images/jobsearch.png', bbox_inches="tight")
+    plt.show()
 
+    
+static_plot_maker_minhours()
+static_plot_maker_jobsearch()
