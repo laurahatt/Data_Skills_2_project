@@ -389,19 +389,9 @@ import statsmodels.api as sm
     #x = comp_df[]
 
 
-#df_dict = {'speeches_geo':'women_count',
-           #'jobsearch_geo': 'Days',
-           #'income_geo': 'med_inc'
-           #}
 
-#df_dict['speeches_geo']
 
-x = speeches_geo['women_count'].tolist()
-y = jobsearch_geo['Days'].tolist()
-x = sm.add_constant(x)
-result = sm.OLS(y, x).fit()
-print(result.summary())
-result.rsquared
+
 
 
                     ###SHINY###
@@ -420,16 +410,13 @@ app_ui = ui.page_fluid(
     ui.row(ui.column(12, ui.h3(' '))),
     ui.row(ui.column(12, ui.h3(' '))),
     ui.row(
-        ui.column(5, 
+        ui.column(6, 
                   ui.input_select(id='var',
                                   label='Choose a CCDF variable',
                                   choices= ['Minimum work hour requirements',
                                             'Duration of eligibility while unemployed']),
                   align='center'),
-        ui.column(2, 
-                  ui.output_text("rsquared_maker"),
-                  align='center'),
-        ui.column(5, 
+        ui.column(6, 
                   ui.input_select(id='comp',
                                   label='Choose a complementary variable',
                                   choices= ['Median household income',
@@ -438,8 +425,9 @@ app_ui = ui.page_fluid(
                   align='center')
         ),
     ui.row(
-        ui.column(6, ui.output_plot('CCDF_mapper'), align='center'),
-        ui.column(6, ui.output_plot('comp_mapper'), align='center')
+        ui.column(5, ui.output_plot('CCDF_mapper'), align='center'),
+        ui.column(2, ui.output_text("rsquared_maker"), align='center'),
+        ui.column(5, ui.output_plot('comp_mapper'), align='center')
         ),
     ui.row(
         ui.column(6, 
@@ -596,11 +584,41 @@ def server(input, output, session):
     @output
     @render.text
     def rsquared_maker():
-        return(result.rsquared.round(5))
         
-
+        if input.var() == 'Minimum work hour requirements':
+            return('Categorical variable: No regression')
+        
+        elif input.comp() == 'Abortion restrictions':
+            return('Categorical variable: No regression')
+        
+        else:
+            x_df_dict = {'Median household income': income_geo,
+                         'Mentions of women in State of the State': speeches_geo}
+            x_var_dict = {'Median household income': 'med_inc',
+                         'Mentions of women in State of the State': 'women_count'}
+            x_df = x_df_dict[input.comp()]
+            x_var = x_var_dict[input.comp()]
+            x = x_df[x_var].tolist()
+            x = sm.add_constant(x)
+            
+            y_df_dict = {'Duration of eligibility while unemployed': jobsearch_geo}
+            y_var_dict = {'Duration of eligibility while unemployed': 'Days'}
+            y_df = y_df_dict[input.var()]
+            y_var = y_var_dict[input.var()]
+            y = y_df[y_var].tolist()
+            
+            result = sm.OLS(y, x).fit()
+            rsq = result.rsquared.round(5)
+            
+            title = 'R-Squared Value: '
+            full_text = title + str(rsq)
+            
+            return(full_text)
+        
 app = App(app_ui, server)
 
-result.rsquared.round(5)
+
+
+
 
 
