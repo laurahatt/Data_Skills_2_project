@@ -176,11 +176,6 @@ def jobsearch_assembler(CCDF_full, sheet_name, state_df):
 
 jobsearch_geo = jobsearch_assembler(CCDF_full, 'EligCriteria', state_df)
 
-
-#Other CCDF variables, for future development
-#Income eligibility thresholds for family of 2
-#whether a family with a CPS case is exempt from copayments
-
                     ###STATIC PLOTS###
 
 def static_plot_maker_minhours():
@@ -241,17 +236,15 @@ def static_plot_maker_jobsearch():
 
     #fig.savefig('images/jobsearch.png', bbox_inches="tight")
     #plt.show()
-
-    
+ 
 static_plot_maker_minhours()
 static_plot_maker_jobsearch()
 
 
                     ###NON-CCDF DATA CLEANING###
-                    
-                    
+                                
 #Mean family income
-#ex - https://fred.stlouisfed.org/series/MEHOINUSWAA646N
+#https://fred.stlouisfed.org/series/MEHOINUSWAA646N
 
 states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
           "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", 
@@ -259,25 +252,31 @@ states = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
           "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", 
           "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
 
-def code_maker(states):
-    list_of_codes = []
-    for st in states:
-        fred_code = 'MEHOINUS' + st + 'A646N'
-        list_of_codes.append(fred_code)
-    return(list_of_codes)
+def income_auto_downloader():
+    """Use FRED API to download household income data for all states"""
+    def code_maker(states):
+        list_of_codes = []
+        for st in states:
+            fred_code = 'MEHOINUS' + st + 'A646N'
+            list_of_codes.append(fred_code)
+        return(list_of_codes)
+    start = datetime.datetime(2019, 1, 1)
+    end = datetime.datetime(2019, 1, 1)
+    income = web.DataReader(code_maker(states), 'fred', start, end)
+    return(income)
 
-start = datetime.datetime(2019, 1, 1)
-end = datetime.datetime(2019, 1, 1)
+def income_assembler(income, state_df): 
+    """Clean income df and merge with geometry"""
+    income.columns = states
+    income = income.transpose()
+    income = income.reset_index()
+    income.columns = ['state_abbv', 'med_inc']
+    income = income.astype({'state_abbv':'string'})
+    income_geo = state_df.merge(income, on='state_abbv', how='outer')
+    return(income_geo)
 
-income = web.DataReader(code_maker(states), 'fred', start, end)
-
-income.columns = states
-income = income.transpose()
-income = income.reset_index()
-income.columns = ['state_abbv', 'med_inc']
-income = income.astype({'state_abbv':'string'})
-
-income_geo = state_df.merge(income, on='state_abbv', how='outer')
+income = income_auto_downloader() 
+income_geo = income_assembler(income, state_df)
 
 
 #Abortion access - table of gestational limits
@@ -565,16 +564,16 @@ def server(input, output, session):
                                  ax=ax)
             ax.set_title('Median Household Income')
             
-            def cmap_maker(column, colors):
-                range_min = income[column].min()
-                range_max = income[column].max()
+            def cmap_maker(df, column, colors):
+                range_min = df[column].min()
+                range_max = df[column].max()
                 cmap = plt.cm.ScalarMappable(
                     norm = mcolors.Normalize(range_min, range_max),
                     cmap = plt.get_cmap(colors))
                 cmap.set_array([])
                 return(cmap)
             
-            colorbar(cmap_maker('med_inc', 'RdBu_r'), cax=cax, orientation="horizontal")
+            colorbar(cmap_maker(income_geo, 'med_inc', 'RdBu_r'), cax=cax, orientation="horizontal")
         
         elif input.comp() == 'Abortion restrictions':
             
