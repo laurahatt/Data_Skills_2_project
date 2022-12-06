@@ -25,7 +25,7 @@ from shiny import App, render, ui
 
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
 
-#Load Urban Institute database of state child care policies
+#Load Urban Institute database of state child care (CCDF) policies
 CCDF = os.path.join(path, 'data/CCDF_databook.xlsx')
 CCDF_full = pd.ExcelFile(CCDF)
 
@@ -36,7 +36,7 @@ state_df = state_df.astype({'state_fips':'int'})
 
                             ###CCDF DATA CLEANING###
 
-def record_selector(sheet_name): 
+def record_selector(CCDF_full, sheet_name): 
     
     """Select and clean relevant sheet of CCDF policy database"""
     sheet = pd.read_excel(CCDF_full, sheet_name)
@@ -95,18 +95,27 @@ def min_hours_classifier(row):
     else:
         return(6)
 
-#I bet I could organize these in a function too
-minhours = record_selector('EligCriteria')[['state_fips','EligMinWorkHours','EligMinHoursAmount']]
-minhours['Number_hours'] = minhours.apply (lambda row: min_hours_translator(row), axis=1)
-minhours['Category'] = minhours.apply (lambda row: min_hours_classifier(row), axis=1)
-minhours = minhours[['state_fips', 'Number_hours', 'Category']]
-minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
+def minhours_assembler(CCDF_full, sheet_name, state_df):
+    minhours = record_selector(CCDF_full, 'EligCriteria')[['state_fips','EligMinWorkHours','EligMinHoursAmount']]
+    minhours['Number_hours'] = minhours.apply (lambda row: min_hours_translator(row), axis=1)
+    minhours['Category'] = minhours.apply (lambda row: min_hours_classifier(row), axis=1)
+    minhours = minhours[['state_fips', 'Number_hours', 'Category']]
+    minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
+    return(minhours_geo)
+    
+minhours_geo = minhours_assembler(CCDF_full, 'EligCriteria', state_df)
+  
+#minhours = record_selector('EligCriteria')[['state_fips','EligMinWorkHours','EligMinHoursAmount']]
+#minhours['Number_hours'] = minhours.apply (lambda row: min_hours_translator(row), axis=1)
+#minhours['Category'] = minhours.apply (lambda row: min_hours_classifier(row), axis=1)
+#minhours = minhours[['state_fips', 'Number_hours', 'Category']]
+#minhours_geo = state_df.merge(minhours, on='state_fips', how='outer')
+
 
 
 #Job search as eligible activity
 #at INITIAL application
 
-#Can I consolidate these four functions into one?
 def jobsearch_translator(row):
     """Translate codes into time"""
     if row['EligApproveActivityJobSearch'] == 2 or row['EligApproveActivityJobSearch'] == 3:
@@ -157,7 +166,7 @@ def jobsearch_day_generator(row):
     else:
         return('Problem')
 
-jobsearch = record_selector('EligCriteria')[['state_fips', 
+jobsearch = record_selector(CCDF_full, 'EligCriteria')[['state_fips', 
                                              'EligApproveActivityJobSearch',
                                              'EligMaxTimeJobSearch', 
                                              'EligMaxTimeJobSearchUnit',
@@ -175,6 +184,71 @@ jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
 #Other CCDF variables, for future development
 #Income eligibility thresholds for family of 2
 #whether a family with a CPS case is exempt from copayments
+
+                    ###STATIC PLOTS###
+
+def static_plot_maker_minhours():
+    """Save and display chloropleth of minimum hours requirements"""
+    
+    fig, ax = plt.subplots(1, figsize=(5,5))
+    
+    ax = minhours_geo.plot(ax=ax, column='Category', categorical=True,  
+                          cmap='RdBu_r',linewidth=.6, edgecolor='0.2',
+                          legend=True, legend_kwds={'bbox_to_anchor':(1.1, 0),
+                                                    'frameon':False,
+                                                    'ncol':2}
+                          )
+    ax.set_title('Minimum Work Hour Requirements')
+    ax.axis('off')
+    
+    legend_dict = {0: 'No minimum',
+                   1: '15 to 19 hours per week',
+                   2: '20 to 24 hours per week',
+                   3: '25 to 29 hours per week',
+                   4: '30 hours per week',
+                   5: 'Other'}
+    def replace_legend_items(legend, legend_dict):
+        for txt in legend.texts:
+            for k,v in legend_dict.items():
+                if txt.get_text() == str(k):
+                    txt.set_text(v)
+    replace_legend_items(ax.get_legend(), legend_dict)
+
+    #fig.savefig('images/minhours.png', bbox_inches="tight")
+    plt.show()
+    
+def static_plot_maker_jobsearch():
+    """Save and display chloropleth of job search eligibility requirements"""
+    
+    fig, ax = plt.subplots(1, figsize=(5,5))
+    
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('bottom', size='10%', pad=0.1)
+
+    ax = jobsearch_geo.plot(column='Days', categorical=False, 
+                         cmap='RdBu', linewidth=.6, edgecolor='0.2',
+                         ax=ax)
+    ax.set_title('Days Eligible While Unemployed, \n (At Initial Application)')
+    ax.axis('off')
+    
+    def cmap_maker(df, column, colors):
+        range_min = df[column].min()
+        range_max = df[column].max()
+        cmap = plt.cm.ScalarMappable(
+            norm = mcolors.Normalize(range_min, range_max),
+            cmap = plt.get_cmap(colors))
+        cmap.set_array([])
+        return(cmap)
+    
+    colorbar(cmap_maker(jobsearch_geo, 'Days', 'RdBu'), cax=cax, orientation="horizontal")
+
+    #fig.savefig('images/jobsearch.png', bbox_inches="tight")
+    plt.show()
+
+    
+static_plot_maker_minhours()
+static_plot_maker_jobsearch()
 
 
                     ###NON-CCDF DATA CLEANING###
@@ -598,67 +672,3 @@ def server(input, output, session):
         
 app = App(app_ui, server)
 
-                    ###STATIC PLOTS###
-
-def static_plot_maker_minhours():
-    """Save and display chloropleth of minimum hours requirements"""
-    
-    fig, ax = plt.subplots(1, figsize=(5,5))
-    
-    ax = minhours_geo.plot(ax=ax, column='Category', categorical=True,  
-                          cmap='RdBu_r',linewidth=.6, edgecolor='0.2',
-                          legend=True, legend_kwds={'bbox_to_anchor':(1.1, 0),
-                                                    'frameon':False,
-                                                    'ncol':2}
-                          )
-    ax.set_title('Minimum Work Hour Requirements')
-    ax.axis('off')
-    
-    legend_dict = {0: 'No minimum',
-                   1: '15 to 19 hours per week',
-                   2: '20 to 24 hours per week',
-                   3: '25 to 29 hours per week',
-                   4: '30 hours per week',
-                   5: 'Other'}
-    def replace_legend_items(legend, legend_dict):
-        for txt in legend.texts:
-            for k,v in legend_dict.items():
-                if txt.get_text() == str(k):
-                    txt.set_text(v)
-    replace_legend_items(ax.get_legend(), legend_dict)
-
-    fig.savefig('images/minhours.png', bbox_inches="tight")
-    plt.show()
-    
-def static_plot_maker_jobsearch():
-    """Save and display chloropleth of job search eligibility requirements"""
-    
-    fig, ax = plt.subplots(1, figsize=(5,5))
-    
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes('bottom', size='10%', pad=0.1)
-
-    ax = jobsearch_geo.plot(column='Days', categorical=False, 
-                         cmap='RdBu', linewidth=.6, edgecolor='0.2',
-                         ax=ax)
-    ax.set_title('Days Eligible While Unemployed, \n (At Initial Application)')
-    ax.axis('off')
-    
-    def cmap_maker(df, column, colors):
-        range_min = df[column].min()
-        range_max = df[column].max()
-        cmap = plt.cm.ScalarMappable(
-            norm = mcolors.Normalize(range_min, range_max),
-            cmap = plt.get_cmap(colors))
-        cmap.set_array([])
-        return(cmap)
-    
-    colorbar(cmap_maker(jobsearch_geo, 'Days', 'RdBu'), cax=cax, orientation="horizontal")
-
-    fig.savefig('images/jobsearch.png', bbox_inches="tight")
-    plt.show()
-
-    
-static_plot_maker_minhours()
-static_plot_maker_jobsearch()
