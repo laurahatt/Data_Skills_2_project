@@ -18,6 +18,8 @@ import matplotlib.colors as mcolors
 from bs4 import BeautifulSoup
 import requests
 import string
+import spacy
+nlp = spacy.load("en_core_web_sm")
 from shiny import App, render, ui
 
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
@@ -355,13 +357,6 @@ abo_geo = abo_geo_assembler(abo_soup, state_df)
 speech_path = os.path.join(path, 'state_of_state_speeches.xlsx')
 speeches = pd.read_excel(speech_path)
 
-
-import spacy
-#import re
-
-nlp = spacy.load("en_core_web_sm")
-#speeches['nlp'] = speeches['SPEECH'].apply(nlp)
-
 def sents_with_women(row):
     new_row = nlp(row)
     new_row = list(new_row.sents)
@@ -371,8 +366,6 @@ def sents_with_women(row):
 
 speeches['women'] = speeches['SPEECH'].apply(sents_with_women)
 speeches['women_count'] = speeches['women'].apply(len)
-
-speeches
 
 speeches['women'][2]
 speeches['women'][6]
@@ -391,27 +384,8 @@ speeches['women'][40]
 speeches['women'][45]
 speeches['women'][49] #cut
 
-#Note DC also had no address
-
-state_df
-
-
-url2 = 'https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries'
-response2 = requests.get(url2)
-speech_soup = BeautifulSoup(response2.text, 'lxml')
-
-speech_soup.text[0:1000]
-speech_soup.find('body')
-speech_soup.find_all('p')[0:10]
-
-
-
-
-#Cost of childcare
-
-#Measure of state progressiveness?
-#maybe 2020 federal election results
-
+speeches.rename(columns={'STATE': 'state_abbv'}, inplace=True)
+speeches_geo = state_df.merge(speeches, on='state_abbv', how='outer')
 
 
                     ###SHINY###
