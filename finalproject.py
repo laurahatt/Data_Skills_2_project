@@ -157,19 +157,6 @@ def jobsearch_day_generator(row):
         return(180) #Special case for New York
     else:
         return('Problem')
-    
-def jobsearch_classifier(row):
-    """Translate number of hours into categorical variable"""
-    if row['Days'] == 0:
-        return(0) #No minimum
-    elif row['Days'] == 30:
-        return(1) #30 days
-    elif row['Days'] >= 84 and row['Days'] < 92:
-        return(2) #12 weeks or 3 months
-    elif row['Days'] == 180:
-        return(3) #6 months
-    else: 
-        return(4) #one year
 
 jobsearch = record_selector('EligCriteria')[['state_fips', 
                                              'EligApproveActivityJobSearch',
@@ -182,11 +169,9 @@ jobsearch['Search_time'] = jobsearch.apply (lambda row: jobsearch_translator(row
 jobsearch = jobsearch.astype({'Search_time':'int'})
 jobsearch['Day_multiplier'] = jobsearch.apply (lambda row: jobsearch_day_multiplier(row), axis=1)    
 jobsearch['Days'] = jobsearch.apply (lambda row: jobsearch_day_generator(row), axis=1)
-jobsearch['Category'] = jobsearch.apply (lambda row: jobsearch_classifier(row), axis=1)
-jobsearch = jobsearch[['state_fips', 'Search_time', 'Day_multiplier', 'Days', 'Category']]
+jobsearch = jobsearch[['state_fips', 'Search_time', 'Day_multiplier', 'Days']]
 
 jobsearch_geo = state_df.merge(jobsearch, on='state_fips', how='outer')
-
 
 #Income eligibility thresholds for family of 2
 #whether a family with a CPS case is exempt from copayments
@@ -457,29 +442,37 @@ def server(input, output, session):
                            3: '25 to 29 hours per week',
                            4: '30 hours per week',
                            5: 'Other'}
+            
+            def replace_legend_items(legend, legend_dict):
+                for txt in legend.texts:
+                    for k,v in legend_dict.items():
+                        if txt.get_text() == str(k):
+                            txt.set_text(v)
+            replace_legend_items(ax.get_legend(), legend_dict)
+            
         else:
-             ax = jobsearch_geo.plot(column='Category', categorical=True, cmap='RdBu', 
-                               linewidth=.6, edgecolor='0.2',
-                               legend=True, 
-                               legend_kwds={'bbox_to_anchor':(0.8, 0), 
-                                            'frameon':False,
-                                            'ncol':2}, 
-                               ax=ax)
-             ax.set_title('Duration of Eligibility While Unemployed, \n (At Initial Application)')
-             legend_dict = {0: 'Not eligible',
-                            1: 'One month',
-                            2: 'Three months',
-                            3: 'Six months',
-                            4: 'One year'}
+             
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes('bottom', size='10%', pad=0.1)
+    
+            ax = jobsearch_geo.plot(column='Days', categorical=False, 
+                                 cmap='RdBu', linewidth=.6, edgecolor='0.2',
+                                 ax=ax)
+            ax.set_title('Days Eligible While Unemployed, \n (At Initial Application)')
+            
+            def cmap_maker(df, column, colors):
+                range_min = df[column].min()
+                range_max = df[column].max()
+                cmap = plt.cm.ScalarMappable(
+                    norm = mcolors.Normalize(range_min, range_max),
+                    cmap = plt.get_cmap(colors))
+                cmap.set_array([])
+                return(cmap)
+            
+            colorbar(cmap_maker(jobsearch_geo, 'Days', 'RdBu'), cax=cax, orientation="horizontal")
 
         ax.axis('off')
-        
-        def replace_legend_items(legend, legend_dict):
-            for txt in legend.texts:
-                for k,v in legend_dict.items():
-                    if txt.get_text() == str(k):
-                        txt.set_text(v)
-        replace_legend_items(ax.get_legend(), legend_dict)
         
         return ax
     
