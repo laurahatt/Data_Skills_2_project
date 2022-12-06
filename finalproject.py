@@ -351,7 +351,6 @@ abo_geo = abo_geo_assembler(abo_soup, state_df)
 #https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
 
 #Sentiment analysis of governor speeches
-#https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries
 #https://www.nasbo.org/resources/stateofthestates
 
 speech_path = os.path.join(path, 'state_of_state_speeches.xlsx')
@@ -367,6 +366,7 @@ def sents_with_women(row):
 speeches['women'] = speeches['SPEECH'].apply(sents_with_women)
 speeches['women_count'] = speeches['women'].apply(len)
 
+#address these issues
 speeches['women'][2]
 speeches['women'][6]
 speeches['women'][7]
@@ -387,6 +387,7 @@ speeches['women'][49] #cut
 speeches.rename(columns={'STATE': 'state_abbv'}, inplace=True)
 speeches_geo = state_df.merge(speeches, on='state_abbv', how='outer')
 
+speeches_geo
 
                     ###SHINY###
 
@@ -414,7 +415,8 @@ app_ui = ui.page_fluid(
                   ui.input_select(id='comp',
                                   label='Choose a complementary variable',
                                   choices= ['Median household income',
-                                            'Abortion restrictions']),
+                                            'Abortion restrictions',
+                                            'Mentions of women in State of the State']),
                   align='center')
         ),
     ui.row(
@@ -509,7 +511,7 @@ def server(input, output, session):
             
             colorbar(cmap_maker('med_inc', 'RdBu_r'), cax=cax, orientation="horizontal")
         
-        else:
+        elif input.comp() == 'Abortion restrictions':
             
             ax = abo_geo.plot(column='stat_limit', categorical=True, cmap='RdBu_r', 
                                   linewidth=.6, edgecolor='0.2',
@@ -540,15 +542,33 @@ def server(input, output, session):
             
             pass
         
+        else:
+            
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes('bottom', size='10%', pad=0.1)
+    
+            ax = speeches_geo.plot(column='women_count', categorical=False, 
+                                 cmap='RdBu', linewidth=.6, edgecolor='0.2',
+                                 ax=ax)
+            ax.set_title('Mentions of women in State of the State address')
+            
+            def cmap_maker(df, column, colors):
+                range_min = df[column].min()
+                range_max = df[column].max()
+                cmap = plt.cm.ScalarMappable(
+                    norm = mcolors.Normalize(range_min, range_max),
+                    cmap = plt.get_cmap(colors))
+                cmap.set_array([])
+                return(cmap)
+            
+            colorbar(cmap_maker(speeches_geo, 'women_count', 'RdBu_r'), cax=cax, orientation="horizontal")     
+        
         ax.axis('off')
         return ax
         
 
 app = App(app_ui, server)
-
-
-
-
 
 
 
