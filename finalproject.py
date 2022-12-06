@@ -365,13 +365,12 @@ nlp = spacy.load("en_core_web_sm")
 def sents_with_women(row):
     new_row = nlp(row)
     new_row = list(new_row.sents)
-    new_row = [sent for sent in new_row if 'women' in sent.text]
+    new_row = [sent.text.replace('men and women', 'men') for sent in new_row]
+    new_row = [sent for sent in new_row if 'women' in sent]
     return(new_row)
 
 speeches['women'] = speeches['SPEECH'].apply(sents_with_women)
-
-speeches
-
+speeches['women_count'] = speeches['women'].apply(len)
 
 
 #I think I missed some pages of Arkansas
