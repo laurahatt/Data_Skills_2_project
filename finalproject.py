@@ -410,24 +410,25 @@ app_ui = ui.page_fluid(
     ui.row(ui.column(12, ui.h3(' '))),
     ui.row(ui.column(12, ui.h3(' '))),
     ui.row(
-        ui.column(6, 
+        ui.column(5, 
+                  ui.input_select(id='comp',
+                                  label='Choose an independent variable',
+                                  choices= ['Median household income',
+                                            'Abortion restrictions',
+                                            'Mentions of women in State of the State']),
+                  align='center'),
+        ui.column(2, ui.h3(' '), align='center'),
+        ui.column(5, 
                   ui.input_select(id='var',
                                   label='Choose a CCDF variable',
                                   choices= ['Minimum work hour requirements',
                                             'Duration of eligibility while unemployed']),
-                  align='center'),
-        ui.column(6, 
-                  ui.input_select(id='comp',
-                                  label='Choose a complementary variable',
-                                  choices= ['Median household income',
-                                            'Abortion restrictions',
-                                            'Mentions of women in State of the State']),
                   align='center')
         ),
     ui.row(
-        ui.column(5, ui.output_plot('CCDF_mapper'), align='center'),
+        ui.column(5, ui.output_plot('comp_mapper'), align='center'),
         ui.column(2, ui.output_text("rsquared_maker"), align='center'),
-        ui.column(5, ui.output_plot('comp_mapper'), align='center')
+        ui.column(5, ui.output_plot('CCDF_mapper'), align='center')
         ),
     ui.row(
         ui.column(6, 
