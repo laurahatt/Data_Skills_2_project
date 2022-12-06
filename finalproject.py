@@ -352,6 +352,43 @@ abo_geo = abo_geo_assembler(abo_soup, state_df)
 #https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries
 #https://www.nasbo.org/resources/stateofthestates
 
+speech_path = os.path.join(path, 'state_of_state_speeches.xlsx')
+speeches = pd.read_excel(speech_path)
+
+
+import spacy
+#import re
+
+nlp = spacy.load("en_core_web_sm")
+#speeches['nlp'] = speeches['SPEECH'].apply(nlp)
+
+def sents_with_women(row):
+    new_row = nlp(row)
+    new_row = list(new_row.sents)
+    new_row = [sent for sent in new_row if 'women' in sent.text]
+    return(new_row)
+
+speeches['women'] = speeches['SPEECH'].apply(sents_with_women)
+
+speeches
+
+
+
+#I think I missed some pages of Arkansas
+
+
+state_df
+
+
+url2 = 'https://www.nasbo.org/mainsite/resources/stateofthestates/sos-summaries'
+response2 = requests.get(url2)
+speech_soup = BeautifulSoup(response2.text, 'lxml')
+
+speech_soup.text[0:1000]
+speech_soup.find('body')
+speech_soup.find_all('p')[0:10]
+
+
 
 
 #Cost of childcare
