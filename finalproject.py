@@ -20,12 +20,13 @@ import requests
 import string
 import spacy
 nlp = spacy.load("en_core_web_sm")
+import statsmodels.api as sm
 from shiny import App, render, ui
 
 path = r'/Users/laurahatt/Documents/GitHub/Data_Skills_2_project'
 
 #Load Urban Institute database of state child care policies
-CCDF = os.path.join(path, 'CCDF_databook.xlsx')
+CCDF = os.path.join(path, 'data/CCDF_databook.xlsx')
 CCDF_full = pd.ExcelFile(CCDF)
 
 #Load Urban Institute states shapefile
@@ -338,7 +339,7 @@ abo_geo = abo_geo_assembler(abo_soup, state_df)
 #Sentiment analysis of governor speeches
 #https://www.nasbo.org/resources/stateofthestates
 
-speech_path = os.path.join(path, 'state_of_state_speeches.xlsx')
+speech_path = os.path.join(path, 'data/state_of_state_speeches.xlsx')
 speeches = pd.read_excel(speech_path)
 
 def sents_with_women(row):
@@ -371,27 +372,6 @@ speeches['women'][49] #cut
 
 speeches.rename(columns={'STATE': 'state_abbv'}, inplace=True)
 speeches_geo = state_df.merge(speeches, on='state_abbv', how='outer')
-
-                    ###REGRESSION###
-                    
-
-import statsmodels.api as sm
-
-#jobsearch and mentions of women
-# x is mentions of women
-# y is job search
-
-#def regression_maker(comp_df, CCDF_df):
-    #df_dict = {speeches_geo:'women_count',
-               #jobsearch_geo: 'Days',
-               #income_geo: 'med_inc'
-               #}
-    #x = comp_df[]
-
-
-
-
-
 
 
                     ###SHINY###
