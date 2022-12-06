@@ -372,7 +372,37 @@ speeches['women'][49] #cut
 speeches.rename(columns={'STATE': 'state_abbv'}, inplace=True)
 speeches_geo = state_df.merge(speeches, on='state_abbv', how='outer')
 
-speeches_geo
+                    ###REGRESSION###
+                    
+
+import statsmodels.api as sm
+
+#jobsearch and mentions of women
+# x is mentions of women
+# y is job search
+
+#def regression_maker(comp_df, CCDF_df):
+    #df_dict = {speeches_geo:'women_count',
+               #jobsearch_geo: 'Days',
+               #income_geo: 'med_inc'
+               #}
+    #x = comp_df[]
+
+
+#df_dict = {'speeches_geo':'women_count',
+           #'jobsearch_geo': 'Days',
+           #'income_geo': 'med_inc'
+           #}
+
+#df_dict['speeches_geo']
+
+x = speeches_geo['women_count'].tolist()
+y = jobsearch_geo['Days'].tolist()
+x = sm.add_constant(x)
+result = sm.OLS(y, x).fit()
+print(result.summary())
+result.rsquared
+
 
                     ###SHINY###
 
@@ -390,13 +420,16 @@ app_ui = ui.page_fluid(
     ui.row(ui.column(12, ui.h3(' '))),
     ui.row(ui.column(12, ui.h3(' '))),
     ui.row(
-        ui.column(6, 
+        ui.column(5, 
                   ui.input_select(id='var',
                                   label='Choose a CCDF variable',
                                   choices= ['Minimum work hour requirements',
                                             'Duration of eligibility while unemployed']),
                   align='center'),
-        ui.column(6, 
+        ui.column(2, 
+                  ui.output_text("rsquared_maker"),
+                  align='center'),
+        ui.column(5, 
                   ui.input_select(id='comp',
                                   label='Choose a complementary variable',
                                   choices= ['Median household income',
@@ -559,10 +592,15 @@ def server(input, output, session):
         
         ax.axis('off')
         return ax
+    
+    @output
+    @render.text
+    def rsquared_maker():
+        return(result.rsquared.round(5))
         
 
 app = App(app_ui, server)
 
-
+result.rsquared.round(5)
 
 
