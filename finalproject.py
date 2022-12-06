@@ -372,9 +372,26 @@ def sents_with_women(row):
 speeches['women'] = speeches['SPEECH'].apply(sents_with_women)
 speeches['women_count'] = speeches['women'].apply(len)
 
+speeches
 
-#I think I missed some pages of Arkansas
+speeches['women'][2]
+speeches['women'][6]
+speeches['women'][7]
+speeches['women'][13] #cut
+speeches['women'][17]
+speeches['women'][20]
+speeches['women'][21]
+speeches['women'][22] #cut
+speeches['women'][24] 
+speeches['women'][27] #cut
+speeches['women'][29] #cut
+speeches['women'][31]
+speeches['women'][34] #cut
+speeches['women'][40]
+speeches['women'][45]
+speeches['women'][49] #cut
 
+#Note DC also had no address
 
 state_df
 
